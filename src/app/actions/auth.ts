@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { setupNewUser } from "@/lib/auth-helpers";
 
 export type RegistrationData = {
   type: "salon" | "solo";
@@ -91,4 +92,59 @@ export async function registerTenant(data: RegistrationData) {
   }
 
   return { success: true, tenantId: tenantData.id, slug };
+}
+
+export type PasswordlessMetadata = {
+  role: 'client' | 'master' | 'salon';
+  name?: string;
+  slug?: string;
+  specializations?: string[];
+  interests?: string[];
+  teamSize?: string;
+  phone?: string;
+};
+
+export async function sendOtp(email: string, metadata: PasswordlessMetadata) {
+  const supabase = await createClient();
+  const origin = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: `${origin}/auth/confirm?next=/`,
+      data: metadata,
+    },
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { success: true };
+}
+
+export async function verifyOtp(email: string, token: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: 'email',
+  });
+
+  if (error || !data.user) {
+    return { error: error?.message || "Неверный код" };
+  }
+
+  const setupResult = await setupNewUser(data.user);
+  if (setupResult?.error) {
+      return { error: setupResult.error };
+  }
+
+  return {
+      success: true,
+      user: data.user,
+      role: setupResult?.role,
+      slug: setupResult?.slug
+  };
 }
