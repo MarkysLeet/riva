@@ -7,12 +7,14 @@ import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MOCK_PLACES } from "@/lib/mock-data";
 import { AuthModal } from "@/components/auth-modal";
+import { LoginModal } from "@/components/login-modal";
 
 const CATEGORIES = ["Маникюр", "Педикюр", "Брови", "Волосы", "Макияж"];
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -61,7 +63,7 @@ export default function Home() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => setIsAuthModalOpen(true)}
+              onClick={() => setIsLoginModalOpen(true)}
               className="h-10 px-5 text-sm font-medium rounded-full inline-flex items-center justify-center transition-colors cursor-pointer border border-[#C59A87] text-[#2A2421] bg-transparent hover:bg-[#F4EFE6]"
             >
               Войти
@@ -266,6 +268,7 @@ export default function Home() {
       </main>
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
     </div>
   );
 }
