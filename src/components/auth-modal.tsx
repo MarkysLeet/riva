@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Scissors, Store, X, CheckCircle, Check } from "lucide-react";
+import { Sparkles, Scissors, Store, X, CheckCircle, Check, Loader2 } from "lucide-react";
+import { sendOtp, verifyOtpAndSetupUser, AuthRole } from "@/app/actions/auth";
 
-type Role = "client" | "master" | "salon" | null;
+type Role = AuthRole | null;
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -46,8 +48,14 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [teamSize, setTeamSize] = useState<string | null>(null);
 
   // Code State
-  const [code, setCode] = useState(["", "", "", ""]);
+  const [code, setCode] = useState(["", "", "", "", "", ""]);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Shared Form State
+  const [emailOrPhone, setEmailOrPhone] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const router = useRouter();
 
   // Reset state when opened
   // It's better to clear it when modal unmounts or opens. We will just depend on conditional rendering to reset state if possible,
@@ -62,7 +70,10 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         setMasterSpecializations([]);
         setSalonName("");
         setTeamSize(null);
-        setCode(["", "", "", ""]);
+        setCode(["", "", "", "", "", ""]);
+        setEmailOrPhone("");
+        setErrorMsg("");
+        setIsLoading(false);
       }, 300); // delay reset until animation finishes
     }
   }, [isOpen]);
@@ -93,9 +104,65 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStep("code");
+    if (!emailOrPhone) {
+      setErrorMsg("Email обязателен");
+      return;
+    }
+    setErrorMsg("");
+    setIsLoading(true);
+
+    try {
+      const result = await sendOtp(emailOrPhone);
+      if (result.error) {
+        setErrorMsg(result.error);
+      } else {
+        setStep("code");
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        setErrorMsg(err.message || "Ошибка отправки кода");
+      } else {
+        setErrorMsg("Ошибка отправки кода");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyOtp = async (fullCode: string) => {
+    if (!role) return;
+    setIsLoading(true);
+    setErrorMsg("");
+
+    try {
+      const result = await verifyOtpAndSetupUser(emailOrPhone, fullCode, role, {
+        name: role === "master" ? masterName : role === "salon" ? salonName : undefined,
+        teamSize,
+        specializations: masterSpecializations,
+        clientInterests,
+      });
+
+      if (result.error) {
+        setErrorMsg(result.error);
+        setIsLoading(false);
+      } else {
+        onClose();
+        if ((role === "master" || role === "salon") && result.slug) {
+          router.push(`/${result.slug}/admin`);
+        } else {
+          router.push("/");
+        }
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        setErrorMsg(err.message || "Ошибка проверки кода");
+      } else {
+        setErrorMsg("Ошибка проверки кода");
+      }
+      setIsLoading(false);
+    }
   };
 
   const handleCodeChange = (index: number, value: string) => {
@@ -106,8 +173,15 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     newCode[index] = value;
     setCode(newCode);
 
-    if (value !== "" && index < 3) {
+    if (value !== "" && index < 5) {
       inputRefs.current[index + 1]?.focus();
+    }
+
+    if (value !== "" && index === 5) {
+      const fullCode = newCode.join("");
+      if (fullCode.length === 6) {
+        verifyOtp(fullCode);
+      }
     }
   };
 
@@ -196,18 +270,25 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                       className="overflow-hidden"
                     >
                       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                        {errorMsg && (
+                          <div className="p-3 bg-destructive/10 text-destructive rounded-xl text-sm mb-2 text-center">
+                            {errorMsg}
+                          </div>
+                        )}
+
                         {role === "client" && (
                           <>
                             <div className="flex flex-col gap-3">
                               <input
                                 type="text"
-                                placeholder="Ваше имя"
+                                placeholder="Ваше имя (необязательно)"
                                 className="w-full bg-[#F4EFE6] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C59A87] text-[#2A2421] placeholder:text-[#827771]"
-                                required
                               />
                               <input
-                                type="text"
-                                placeholder="Телефон или Email"
+                                type="email"
+                                placeholder="Email"
+                                value={emailOrPhone}
+                                onChange={(e) => setEmailOrPhone(e.target.value)}
                                 className="w-full bg-[#F4EFE6] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C59A87] text-[#2A2421] placeholder:text-[#827771]"
                                 required
                               />
@@ -227,8 +308,10 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                             </div>
                             <button
                               type="submit"
-                              className="mt-2 w-full bg-[#C59A87] text-white py-3 rounded-full font-medium transition-colors hover:bg-[#b08876]"
+                              disabled={isLoading}
+                              className="mt-2 w-full bg-[#C59A87] text-white py-3 rounded-full font-medium transition-colors hover:bg-[#b08876] disabled:opacity-50 flex justify-center items-center gap-2"
                             >
+                              {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                               Получить код доступа
                             </button>
                           </>
@@ -282,6 +365,8 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                             <input
                               type="email"
                               placeholder="Рабочий Email"
+                              value={emailOrPhone}
+                              onChange={(e) => setEmailOrPhone(e.target.value)}
                               className="w-full bg-[#F4EFE6] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C59A87] text-[#2A2421] placeholder:text-[#827771]"
                               required
                             />
@@ -289,8 +374,10 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                             <div className="mt-2 text-center">
                               <button
                                 type="submit"
-                                className="w-full bg-[#C59A87] text-white py-3 rounded-full font-medium transition-colors hover:bg-[#b08876]"
+                                disabled={isLoading}
+                                className="w-full bg-[#C59A87] text-white py-3 rounded-full font-medium transition-colors hover:bg-[#b08876] disabled:opacity-50 flex justify-center items-center gap-2"
                               >
+                                {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                                 Создать страницу мастера
                               </button>
                               <p className="text-[#827771] text-xs mt-3">
@@ -354,14 +441,18 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                             <input
                               type="email"
                               placeholder="Email владельца или управляющего"
+                              value={emailOrPhone}
+                              onChange={(e) => setEmailOrPhone(e.target.value)}
                               className="w-full bg-[#F4EFE6] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C59A87] text-[#2A2421] placeholder:text-[#827771]"
                               required
                             />
 
                             <button
                               type="submit"
-                              className="mt-2 w-full bg-[#C59A87] text-white py-3 rounded-full font-medium transition-colors hover:bg-[#b08876]"
+                              disabled={isLoading}
+                              className="mt-2 w-full bg-[#C59A87] text-white py-3 rounded-full font-medium transition-colors hover:bg-[#b08876] disabled:opacity-50 flex justify-center items-center gap-2"
                             >
+                               {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                               Запустить CRM салона (30 дней триал)
                             </button>
                           </>
@@ -381,15 +472,25 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 className="flex flex-col items-center py-4"
               >
                 <div className="w-16 h-16 rounded-full bg-[#C3D5C5]/20 flex items-center justify-center mb-6">
-                  <CheckCircle className="w-8 h-8 text-[#8FA992]" />
+                  {isLoading ? (
+                    <Loader2 className="w-8 h-8 text-[#8FA992] animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-8 h-8 text-[#8FA992]" />
+                  )}
                 </div>
 
                 <h3 className="text-xl font-semibold text-[#2A2421] mb-2 text-center">Проверьте почту</h3>
-                <p className="text-[#827771] text-sm text-center mb-8 px-4">
-                  Мы отправили Magic-ссылку и код на ваш контакт
+                <p className="text-[#827771] text-sm text-center mb-4 px-4">
+                  Мы отправили Magic-ссылку и код на {emailOrPhone}
                 </p>
 
-                <div className="flex gap-4 mb-8">
+                {errorMsg && (
+                  <div className="p-3 bg-destructive/10 text-destructive rounded-xl text-sm mb-4 text-center w-full max-w-[80%]">
+                    {errorMsg}
+                  </div>
+                )}
+
+                <div className="flex gap-2 sm:gap-4 mb-8">
                   {code.map((digit, index) => (
                     <input
                       key={index}
@@ -402,14 +503,20 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                       value={digit}
                       onChange={(e) => handleCodeChange(index, e.target.value)}
                       onKeyDown={(e) => handleCodeKeyDown(index, e)}
-                      className="w-14 h-14 bg-[#F4EFE6] rounded-2xl text-center text-2xl font-medium text-[#2A2421] focus:outline-none focus:ring-2 focus:ring-[#C59A87] transition-all"
+                      disabled={isLoading}
+                      className="w-10 h-12 sm:w-12 sm:h-14 bg-[#F4EFE6] rounded-xl sm:rounded-2xl text-center text-xl sm:text-2xl font-medium text-[#2A2421] focus:outline-none focus:ring-2 focus:ring-[#C59A87] transition-all disabled:opacity-50"
                     />
                   ))}
                 </div>
 
                 <button
-                  onClick={() => setStep("form")}
-                  className="text-[#827771] text-sm hover:text-[#2A2421] transition-colors"
+                  onClick={() => {
+                    setStep("form");
+                    setCode(["", "", "", "", "", ""]);
+                    setErrorMsg("");
+                  }}
+                  disabled={isLoading}
+                  className="text-[#827771] text-sm hover:text-[#2A2421] transition-colors disabled:opacity-50"
                 >
                   Вернуться назад
                 </button>

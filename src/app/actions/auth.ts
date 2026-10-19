@@ -2,93 +2,146 @@
 
 import { createClient } from "@/lib/supabase/server";
 
-export type RegistrationData = {
-  type: "salon" | "solo";
-  email: string;
-  password: string;
-  name: string;
-  phone: string;
-  socials?: { url: string }[];
-};
+export type AuthRole = "client" | "master" | "salon";
 
-export async function registerTenant(data: RegistrationData) {
+// 1. Action to initiate OTP
+export async function sendOtp(email: string) {
   const supabase = await createClient();
 
-  const { email, password, name, type, phone, socials } = data;
-  const isSoloMaster = type === "solo";
-
-  // Generate a basic slug from the name
-  let baseSlug = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)+/g, "");
-
-  if (!baseSlug) {
-      baseSlug = "studio";
-  }
-
-  // Very basic uniqueness check for slug
-  let slug = baseSlug;
-  let isUnique = false;
-  let counter = 1;
-
-  while (!isUnique) {
-    const { data: existing } = await supabase
-      .from("tenants")
-      .select("id")
-      .eq("slug", slug)
-      .single();
-
-    if (!existing) {
-      isUnique = true;
-    } else {
-      slug = `${baseSlug}-${counter}`;
-      counter++;
-    }
-  }
-
-  // 1. Sign up the user in Supabase Auth
-  const { data: authData, error: authError } = await supabase.auth.signUp({
+  const { error } = await supabase.auth.signInWithOtp({
     email,
-    password,
+    options: {
+      shouldCreateUser: true, // Allow new user creation
+    },
   });
 
-  if (authError || !authData.user) {
-    return { error: authError?.message || "Ошибка создания пользователя" };
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { success: true };
+}
+
+// 2. Action to verify OTP and handle tenant logic
+export async function verifyOtpAndSetupUser(
+  email: string,
+  token: string,
+  role: AuthRole,
+  metadata?: {
+    name?: string; // used for master/salon name
+    teamSize?: string | null;
+    specializations?: string[];
+    clientInterests?: string[];
+  }
+) {
+  const supabase = await createClient();
+
+  // Verify the OTP token
+  const { data: authData, error: verifyError } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "email",
+  });
+
+  if (verifyError || !authData.user) {
+    return { error: verifyError?.message || "Invalid or expired code" };
   }
 
   const userId = authData.user.id;
+  let finalSlug: string | null = null;
 
-  // 2. Insert into tenants table
-  const { data: tenantData, error: tenantError } = await supabase
-    .from("tenants")
-    .insert([
+  // If role is master or salon, handle tenant creation logic
+  if (role === "master" || role === "salon") {
+    // Check if the user already owns a tenant
+    const { data: existingOwnership } = await supabase
+      .from("tenant_owners")
+      .select("tenant_id, tenants(slug)")
+      .eq("user_id", userId)
+      .single();
+
+    if (existingOwnership) {
+      // User already has a tenant, just return the existing slug
+      const tenantsData = existingOwnership.tenants;
+      if (Array.isArray(tenantsData)) {
+          finalSlug = tenantsData[0]?.slug || null;
+      } else {
+          finalSlug = (tenantsData as { slug: string } | null)?.slug || null;
+      }
+      return { success: true, slug: finalSlug };
+    }
+
+    // Otherwise, create a new tenant
+    const name = metadata?.name || "Studio";
+    const isSoloMaster = role === "master";
+
+    // Generate base slug
+    let baseSlug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)+/g, "");
+
+    if (!baseSlug) {
+      baseSlug = "studio";
+    }
+
+    // Ensure uniqueness
+    let slug = baseSlug;
+    let isUnique = false;
+    let counter = 1;
+
+    while (!isUnique) {
+      const { data: existing } = await supabase
+        .from("tenants")
+        .select("id")
+        .eq("slug", slug)
+        .single();
+
+      if (!existing) {
+        isUnique = true;
+      } else {
+        slug = `${baseSlug}-${counter}`;
+        counter++;
+      }
+    }
+
+    // Insert tenant
+    const { data: tenantData, error: tenantError } = await supabase
+      .from("tenants")
+      .insert([
+        {
+          slug,
+          name,
+          is_solo_master: isSoloMaster,
+        },
+      ])
+      .select("id")
+      .single();
+
+    if (tenantError || !tenantData) {
+      return { error: tenantError?.message || "Error creating business profile" };
+    }
+
+    // Link owner to tenant
+    const { error: ownerError } = await supabase.from("tenant_owners").insert([
       {
-        slug: slug,
-        name: name,
-        phone: phone,
-        social_networks: socials?.map((s) => s.url).filter(Boolean) || [],
-        is_solo_master: isSoloMaster,
+        tenant_id: tenantData.id,
+        user_id: userId,
       },
-    ])
-    .select("id")
-    .single();
+    ]);
 
-  if (tenantError || !tenantData) {
-    return { error: tenantError?.message || "Ошибка создания салона/мастера" };
+    if (ownerError) {
+      return { error: ownerError.message || "Error assigning owner" };
+    }
+
+    finalSlug = slug;
+  } else {
+     // User is a client. Update their user metadata if needed.
+     if (metadata?.clientInterests && metadata.clientInterests.length > 0) {
+        await supabase.auth.updateUser({
+           data: { interests: metadata.clientInterests }
+        });
+     }
   }
 
-  // 3. Link owner to tenant
-  const { error: ownerError } = await supabase.from("tenant_owners").insert([
-    {
-      tenant_id: tenantData.id,
-      user_id: userId,
-    },
-  ]);
-
-  if (ownerError) {
-    return { error: ownerError.message || "Ошибка назначения владельца" };
-  }
-
-  return { success: true, tenantId: tenantData.id, slug };
+  return { success: true, slug: finalSlug };
 }
