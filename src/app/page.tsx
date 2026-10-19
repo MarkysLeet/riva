@@ -6,11 +6,13 @@ import { motion } from "framer-motion";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MOCK_PLACES, MasterPlace } from "@/lib/mock-data";
+import { AuthModal } from "@/components/auth-modal";
 
 const CATEGORIES = ["Маникюр", "Педикюр", "Брови", "Волосы", "Макияж"];
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -59,6 +61,7 @@ export default function Home() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
+              onClick={() => setIsAuthModalOpen(true)}
               className="px-5 py-2.5 rounded-full border border-accent-terra text-main text-sm font-medium transition-colors hover:bg-accent-terra/5"
             >
               Войти
@@ -66,9 +69,10 @@ export default function Home() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="px-5 py-2.5 rounded-full bg-surface text-main text-sm font-medium transition-colors hover:bg-accent-terra hover:text-white"
+              onClick={() => setIsAuthModalOpen(true)}
+              className="px-4 py-1.5 text-sm rounded-full bg-[#C59A87] text-white font-medium transition-colors hover:bg-[#b08876]"
             >
-              Личный кабинет
+              Зарегистрироваться
             </motion.button>
           </div>
         </div>
@@ -260,6 +264,8 @@ export default function Home() {
           </motion.div>
         </div>
       </main>
+
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </div>
   );
 }
