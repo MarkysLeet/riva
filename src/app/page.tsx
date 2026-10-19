@@ -5,7 +5,7 @@ import { Search, ChevronDown, Star, Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
-import { MOCK_PLACES, MasterPlace } from "@/lib/mock-data";
+import { MOCK_PLACES } from "@/lib/mock-data";
 import { AuthModal } from "@/components/auth-modal";
 
 const CATEGORIES = ["Маникюр", "Педикюр", "Брови", "Волосы", "Макияж"];
@@ -33,7 +33,7 @@ export default function Home() {
     <div className="min-h-screen flex flex-col font-sans bg-base text-main">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full bg-base/80 backdrop-blur-md border-b border-surface/50">
-        <div className="container mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-[1200px] w-full mx-auto px-6 h-20 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-3">
             <span className="font-serif text-3xl font-bold italic tracking-tight">R</span>
@@ -41,8 +41,8 @@ export default function Home() {
           </div>
 
           {/* Search Bar & City */}
-          <div className="hidden md:flex items-center gap-4 flex-1 max-w-xl mx-8">
-            <div className="flex-1 flex items-center bg-[#EFEAE0] rounded-full px-4 py-2.5">
+          <div className="hidden md:flex items-center gap-3 flex-1 justify-center mx-8">
+            <div className="max-w-md w-full flex items-center bg-[#F0EAE1] h-10 rounded-full px-4">
               <Search className="w-4 h-4 text-muted mr-3" />
               <input
                 type="text"
@@ -50,7 +50,7 @@ export default function Home() {
                 className="bg-transparent border-none outline-none w-full text-sm placeholder:text-muted"
               />
             </div>
-            <div className="flex items-center gap-1 cursor-pointer group">
+            <div className="flex items-center gap-1 cursor-pointer group shrink-0">
               <span className="text-sm font-medium">Анталья</span>
               <ChevronDown className="w-4 h-4 text-muted group-hover:text-main transition-colors" />
             </div>
@@ -62,7 +62,7 @@ export default function Home() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setIsAuthModalOpen(true)}
-              className="px-5 py-2.5 rounded-full border border-accent-terra text-main text-sm font-medium transition-colors hover:bg-accent-terra/5"
+              className="h-10 px-5 text-sm font-medium rounded-full inline-flex items-center justify-center transition-colors cursor-pointer border border-[#C59A87] text-[#2A2421] bg-transparent hover:bg-[#F4EFE6]"
             >
               Войти
             </motion.button>
@@ -70,7 +70,7 @@ export default function Home() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setIsAuthModalOpen(true)}
-              className="px-4 py-1.5 text-sm rounded-full bg-[#C59A87] text-white font-medium transition-colors hover:bg-[#b08876]"
+              className="h-10 px-5 text-sm font-medium rounded-full inline-flex items-center justify-center transition-colors cursor-pointer bg-[#C59A87] text-white border border-transparent hover:bg-[#b58976]"
             >
               Зарегистрироваться
             </motion.button>
@@ -79,13 +79,13 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-8 flex flex-col lg:flex-row gap-8">
+      <main className="max-w-[1200px] w-full mx-auto px-6 py-8 flex flex-col lg:flex-row gap-8">
 
         {/* Sidebar Filters */}
-        <aside className="w-full lg:w-80 shrink-0 bg-surface rounded-2xl p-6 flex flex-col gap-8 h-fit">
-          {/* Categories */}
-          <div>
-            <h3 className="font-semibold mb-4 text-lg">Категории</h3>
+        <aside className="w-full lg:w-80 shrink-0 flex flex-col gap-5 h-fit sticky top-28">
+          {/* Filters */}
+          <div className="bg-[#F4EFE6] rounded-2xl p-5">
+            <h3 className="font-semibold mb-4 text-lg">Фильтры</h3>
             <div className="flex flex-wrap gap-2">
               {CATEGORIES.map(cat => (
                 <button
@@ -93,8 +93,8 @@ export default function Home() {
                   onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                     activeCategory === cat
-                      ? "bg-accent-terra text-white"
-                      : "bg-[#FDFBF7] text-main hover:bg-accent-green/30"
+                      ? "bg-[#C59A87] text-white"
+                      : "bg-[#FDFBF7] text-main hover:bg-[#C59A87]/10"
                   }`}
                 >
                   {cat}
@@ -104,7 +104,7 @@ export default function Home() {
           </div>
 
           {/* Radius Slider */}
-          <div>
+          <div className="bg-[#F4EFE6] rounded-2xl p-5">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold text-lg">Радиус</h3>
               <span className="text-sm text-muted">до 5 км</span>
@@ -112,7 +112,7 @@ export default function Home() {
             <Slider defaultValue={[5]} max={20} step={1} />
 
             <div className="mt-6 flex items-start gap-3 cursor-pointer group">
-              <Checkbox id="available-today" className="mt-0.5" />
+              <Checkbox id="available-today" className="mt-0.5 border-[#827771]/50 bg-[#FDFBF7] rounded-md data-[state=checked]:bg-[#C59A87] data-[state=checked]:border-[#C59A87]" />
               <label
                 htmlFor="available-today"
                 className="text-sm font-medium leading-tight cursor-pointer group-hover:text-accent-terra transition-colors select-none"
@@ -123,7 +123,7 @@ export default function Home() {
           </div>
 
           {/* Price Range */}
-          <div>
+          <div className="bg-[#F4EFE6] rounded-2xl p-5">
             <h3 className="font-semibold mb-4 text-lg">Диапазон цен</h3>
             <div className="flex items-center gap-3">
               <div className="flex-1 bg-[#FDFBF7] rounded-xl px-4 py-2.5 flex items-center">
@@ -143,8 +143,8 @@ export default function Home() {
         <div className="flex-1">
           <div className="mb-6 flex justify-between items-end">
             <div>
-              <h1 className="text-3xl font-serif mb-2">Найдено 124 варианта</h1>
-              <p className="text-muted text-sm">Салоны и частные мастера в Анталье</p>
+              <h1 className="font-sans text-3xl font-bold text-[#2A2421] tracking-tight mb-1">Салоны и мастера поблизости</h1>
+              <p className="text-sm text-[#827771] mt-1">Салоны и частные мастера в Анталье</p>
             </div>
           </div>
 
@@ -152,7 +152,7 @@ export default function Home() {
             variants={containerVariants}
             initial="hidden"
             animate="show"
-            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            className="columns-1 md:columns-2 gap-6"
           >
             {MOCK_PLACES.map((place) => (
               <motion.div
@@ -160,7 +160,7 @@ export default function Home() {
                 variants={itemVariants}
                 whileHover={{ y: -4 }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className="bg-[#FDFBF7] rounded-3xl overflow-hidden flex flex-col shadow-[0_4px_20px_rgba(42,36,33,0.05)] border border-surface"
+                className="bg-[#FDFBF7] rounded-3xl overflow-hidden flex flex-col shadow-[0_4px_20px_rgba(42,36,33,0.05)] border border-surface break-inside-avoid mb-6"
               >
                 {/* Salon Image Header */}
                 {place.type === "salon" && place.image && (
@@ -176,9 +176,9 @@ export default function Home() {
                   </div>
                 )}
 
-                <div className="p-6 flex flex-col flex-1">
+                <div className="p-5 flex flex-col gap-4">
                   {/* Header / Meta */}
-                  <div className="flex items-start gap-4 mb-4">
+                  <div className="flex items-start gap-4">
                     {place.type === "solo" && place.avatar && (
                       <img src={place.avatar} alt={place.name} className="w-16 h-16 rounded-full object-cover shrink-0" />
                     )}
@@ -210,13 +210,13 @@ export default function Home() {
 
                   {/* Price info for solo */}
                   {place.type === "solo" && place.priceStart && (
-                    <div className="text-sm font-medium mb-4">
+                    <div className="text-sm font-medium">
                       Маникюр с покрытием • <span className="text-muted">от {place.priceStart} TL</span>
                     </div>
                   )}
 
                   {/* Time Slots */}
-                  <div className="mt-2 mb-6">
+                  <div>
                     <div className="text-sm font-medium mb-3">Свободны сегодня</div>
                     <div className="flex gap-2">
                       {place.slots.map((slot, idx) => (
@@ -238,13 +238,13 @@ export default function Home() {
                   </div>
 
                   {/* Footer */}
-                  <div className="mt-auto pt-4 border-t border-surface flex items-center justify-between">
+                  <div className="pt-3 border-t border-[#EFEAE0] flex items-center justify-between">
                     <div className="flex gap-2 flex-wrap">
                       {place.type === "salon" && place.deposit && (
                         <span className="text-sm font-medium">Депозит: {place.deposit} TL</span>
                       )}
                       {place.type === "solo" && place.tags?.map(tag => (
-                        <span key={tag} className={`text-xs font-medium px-2 py-1 rounded-md ${tag === "Депозит" ? "bg-accent-terra/20 text-accent-terra" : "bg-surface text-main"}`}>
+                        <span key={tag} className={`text-xs font-medium px-2 py-1 rounded-md ${tag === "Депозит" ? "bg-[#C59A87]/20 text-[#C59A87]" : "bg-[#F4EFE6] text-[#2A2421]"}`}>
                           {tag}
                         </span>
                       ))}
@@ -253,7 +253,7 @@ export default function Home() {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="px-6 py-2.5 bg-accent-terra text-white rounded-full text-sm font-medium shadow-sm hover:shadow-md transition-shadow"
+                      className="h-9 px-5 rounded-full bg-[#C59A87] text-white text-sm font-medium inline-flex items-center justify-center"
                     >
                       Записаться
                     </motion.button>
