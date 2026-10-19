@@ -111,7 +111,7 @@ export async function sendOtp(email: string, metadata: PasswordlessMetadata) {
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${origin}/auth/confirm?next=/`,
+      emailRedirectTo: `${origin}/auth/confirm?next=/dashboard`,
       data: metadata,
     },
   });

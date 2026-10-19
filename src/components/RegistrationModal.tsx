@@ -7,6 +7,7 @@ import * as z from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Plus, Trash2, CheckCircle2 } from "lucide-react";
 import { registerTenant } from "@/app/actions/auth";
+import { useRouter } from "next/navigation";
 
 import {
   Dialog,
@@ -82,6 +83,7 @@ export function RegistrationModal({
   isOpen: boolean;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -121,7 +123,7 @@ export function RegistrationModal({
         setError(result.error);
       } else {
         onClose();
-        // Here you might want to redirect or show a success message
+        router.push("/dashboard");
       }
     } catch {
       setError("Произошла ошибка при регистрации");

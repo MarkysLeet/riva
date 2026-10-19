@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
 import { Search, ChevronDown, Star, Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import { Slider } from "@/components/ui/slider";
@@ -13,6 +16,26 @@ const CATEGORIES = ["Маникюр", "Педикюр", "Брови", "Воло�
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    if (!supabase) return;
+
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data?.user ?? null);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -58,22 +81,36 @@ export default function Home() {
 
           {/* Auth */}
           <div className="flex items-center gap-3">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setIsAuthModalOpen(true)}
-              className="h-10 px-5 text-sm font-medium rounded-full inline-flex items-center justify-center transition-colors cursor-pointer border border-[#C59A87] text-[#2A2421] bg-transparent hover:bg-[#F4EFE6]"
-            >
-              Войти
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setIsAuthModalOpen(true)}
-              className="h-10 px-5 text-sm font-medium rounded-full inline-flex items-center justify-center transition-colors cursor-pointer bg-[#C59A87] text-white border border-transparent hover:bg-[#b58976]"
-            >
-              Зарегистрироваться
-            </motion.button>
+            {user ? (
+              <Link href="/dashboard">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="h-10 px-6 text-sm font-medium rounded-full inline-flex items-center justify-center transition-colors cursor-pointer bg-[#C59A87] text-white hover:bg-[#b58976] shadow-sm"
+                >
+                  Личный кабинет
+                </motion.button>
+              </Link>
+            ) : (
+              <>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="h-10 px-5 text-sm font-medium rounded-full inline-flex items-center justify-center transition-colors cursor-pointer border border-[#C59A87] text-[#2A2421] bg-transparent hover:bg-[#F4EFE6]"
+                >
+                  Войти
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="h-10 px-5 text-sm font-medium rounded-full inline-flex items-center justify-center transition-colors cursor-pointer bg-[#C59A87] text-white border border-transparent hover:bg-[#b58976]"
+                >
+                  Зарегистрироваться
+                </motion.button>
+              </>
+            )}
           </div>
         </div>
       </header>

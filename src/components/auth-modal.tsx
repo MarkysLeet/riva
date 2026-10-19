@@ -155,11 +155,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
       } else {
         setIsLoading(false);
         onClose();
-        if ((res.role === "master" || res.role === "salon") && res.slug) {
-          router.push(`/${res.slug}/admin`);
-        } else {
-          router.refresh();
-        }
+        router.push("/dashboard");
       }
     } catch {
       setIsLoading(false);
