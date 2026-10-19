@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Trash2, ArrowRight, ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight, Plus, Trash2, CheckCircle2 } from "lucide-react";
 import { registerTenant } from "@/app/actions/auth";
 
 import {
@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,11 +24,56 @@ const formSchema = z.object({
   email: z.string().email("Неверный формат email"),
   password: z.string().min(6, "Пароль должен содержать минимум 6 символов"),
   name: z.string().min(2, "Обязательное поле (минимум 2 символа)"),
+  slug: z.string().min(3, "Минимум 3 символа").regex(/^[a-z0-9-]+$/, "Только латинские буквы, цифры и дефис"),
   phone: z.string().min(5, "Обязательное поле"),
   socials: z.array(z.object({ url: z.string() })).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+// --- Mock Hook for Slug Validation ---
+function useSlugValidation(slugValue: string) {
+  const [status, setStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  const [chips, setChips] = useState<string[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!slugValue || slugValue.length < 3) {
+      setTimeout(() => {
+        if(active) {
+            setStatus('idle');
+            setChips([]);
+        }
+      }, 0);
+      return;
+    }
+
+    setTimeout(() => {
+        if(active) {
+            setStatus('checking');
+        }
+    }, 0);
+    const timer = setTimeout(() => {
+        if(!active) return;
+      // Mock logic: if slug includes "test", it's taken
+      if (slugValue.includes('test')) {
+        setStatus('taken');
+        setChips([`${slugValue}-studio`, `${slugValue}-pro`, `${slugValue}-beauty`, `${slugValue}1`]);
+      } else {
+        setStatus('available');
+        setChips([]);
+      }
+    }, 350); // 350ms debounce
+
+    return () => {
+        active = false;
+        clearTimeout(timer);
+    };
+  }, [slugValue]);
+
+  return { status, chips };
+}
 
 export function RegistrationModal({
   isOpen,
@@ -39,6 +85,7 @@ export function RegistrationModal({
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailExists, setEmailExists] = useState(false);
 
   const {
     register,
@@ -46,6 +93,7 @@ export function RegistrationModal({
     control,
     watch,
     trigger,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -61,6 +109,8 @@ export function RegistrationModal({
   });
 
   const accountType = watch("type");
+  const slugValue = watch("slug");
+  const { status: slugStatus, chips: slugChips } = useSlugValidation(slugValue);
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
@@ -80,10 +130,23 @@ export function RegistrationModal({
     }
   };
 
+  const checkEmailExists = async (email: string) => {
+    if (!email || !email.includes("@")) return;
+
+    // Mock API call
+    setTimeout(() => {
+        if (email === "test@example.com") {
+            setEmailExists(true);
+        } else {
+            setEmailExists(false);
+        }
+    }, 500);
+  };
+
   const nextStep = async () => {
     if (step === 2) {
       const isValid = await trigger(["email", "password"]);
-      if (!isValid) return;
+      if (!isValid || emailExists) return;
     }
     setStep((prev) => prev + 1);
   };
@@ -173,13 +236,30 @@ export function RegistrationModal({
                       id="email"
                       type="email"
                       placeholder="name@example.com"
-                      {...register("email")}
+                      {...register("email", {
+                          onBlur: (e) => checkEmailExists(e.target.value)
+                      })}
                     />
-                    {errors.email && (
+                    {errors.email ? (
                       <p className="text-sm text-destructive">
                         {errors.email.message}
                       </p>
-                    )}
+                    ) : emailExists ? (
+                      <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-3 flex items-center justify-between text-xs mt-2">
+                        <span>Аккаунт с таким email уже существует</span>
+                        <button
+                            type="button"
+                            className="font-semibold underline hover:text-amber-950"
+                            onClick={() => {
+                                // Logic to jump to login modal if applicable
+                                // For now, we just close this modal as a mock
+                                onClose();
+                            }}
+                        >
+                            Войти
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password">Пароль</Label>
@@ -241,6 +321,61 @@ export function RegistrationModal({
                       </p>
                     )}
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="slug">Ссылка (Slug)</Label>
+                    <div className="relative flex items-center">
+                      <span className="absolute left-3 text-sm text-muted-foreground select-none pointer-events-none">
+                        riva.pro/
+                      </span>
+                      <Input
+                        id="slug"
+                        {...register("slug", {
+                          onChange: (e) => {
+                            e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                          }
+                        })}
+                        className={cn("pl-[72px]",
+                          slugStatus === 'available' && "border-green-500 focus-visible:ring-green-500/20",
+                          slugStatus === 'taken' && "border-destructive focus-visible:ring-destructive/20"
+                        )}
+                      />
+                      {slugStatus === 'available' && (
+                        <CheckCircle2 className="w-4 h-4 text-green-600 absolute right-3" />
+                      )}
+                    </div>
+
+                    {slugStatus === 'available' && (
+                      <p className="text-xs text-green-600 mt-1">
+                        Ссылка свободна! Клиенты смогут записаться по ней
+                      </p>
+                    )}
+                    {slugStatus === 'taken' && (
+                      <div className="mt-1">
+                        <p className="text-xs text-destructive mb-2">Эта ссылка уже занята</p>
+                        <div className="flex flex-wrap gap-2">
+                          {slugChips.map(chip => (
+                            <button
+                              key={chip}
+                              type="button"
+                              onClick={() => {
+                                setValue("slug", chip, { shouldValidate: true, shouldDirty: true });
+                              }}
+                              className="bg-riva-canvas hover:bg-riva-sidebar border border-riva-border px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all text-riva-text-primary"
+                            >
+                              {chip}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {errors.slug && (
+                      <p className="text-sm text-destructive">
+                        {errors.slug.message}
+                      </p>
+                    )}
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="phone">Номер телефона</Label>
                     <Input id="phone" type="tel" {...register("phone")} />
