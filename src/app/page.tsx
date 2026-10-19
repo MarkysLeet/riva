@@ -82,7 +82,7 @@ export default function Home() {
       <main className="max-w-[1200px] w-full mx-auto px-6 py-8 flex flex-col lg:flex-row gap-8">
 
         {/* Sidebar Filters */}
-        <aside className="w-full lg:w-80 shrink-0 flex flex-col gap-5 h-fit sticky top-8">
+        <aside className="w-full lg:w-80 shrink-0 flex flex-col gap-5 h-fit sticky top-28">
           {/* Filters */}
           <div className="bg-[#F4EFE6] rounded-2xl p-5">
             <h3 className="font-semibold mb-4 text-lg">Фильтры</h3>
