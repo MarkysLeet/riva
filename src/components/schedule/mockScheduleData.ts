@@ -3,22 +3,23 @@ export type AppointmentStatus = 'confirmed' | 'pending' | 'in_progress' | 'compl
 export interface ClientProfile {
   id: string;
   name: string;
+  shortName?: string;
   phone: string;
   avatarUrl?: string;
   metrics: {
-    loyaltyRate: number;      // e.g. 100 (%)
-    attendanceRate: number;   // e.g. 100 (%)
-    rating: number;           // e.g. 5.0 или 100 (%)
+    loyaltyRate: number;      // 100 (%)
+    attendanceRate: number;   // 100 (%)
+    rating: number;           // 100 (%)
   };
-  notes: string;              // Внутренние пометки мастера
+  notes: string;
   totalVisits: number;
 }
 
 export interface PastVisit {
   id: string;
-  date: string;               // e.g. "12 октября 2026"
+  date: string;
   serviceName: string;
-  price: number;
+  price?: number;
   status: 'completed' | 'cancelled';
 }
 
@@ -27,13 +28,14 @@ export interface Appointment {
   clientId: string;
   client: ClientProfile;
   serviceName: string;
-  startTime: string;          // e.g. "10:00"
-  endTime: string;            // e.g. "11:30"
-  startHourDecimal: number;   // e.g. 10.0 для позиционирования
-  durationMinutes: number;    // e.g. 90
+  startTime: string;
+  endTime: string;
+  startHourDecimal: number;
+  durationMinutes: number;
   specialistName: string;
   price: number;
   depositAmount: number;
+  depositCurrency?: string;
   isDepositPaid: boolean;
   status: AppointmentStatus;
   pastVisits: PastVisit[];
@@ -46,39 +48,39 @@ export const mockScheduleData: Appointment[] = [
     client: {
       id: 'cli-1',
       name: 'Анна Грозан',
+      shortName: 'Анна Г.',
       phone: '+7 (999) 123-45-67',
-      avatarUrl: 'https://i.pravatar.cc/150?u=anna',
+      avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80',
       metrics: {
         loyaltyRate: 100,
         attendanceRate: 100,
-        rating: 5.0,
+        rating: 100,
       },
-      notes: 'Предпочитает кофе без сахара, чувствительная кожа головы, формула тонирования: 9.12 + 1.5%',
+      notes: 'Аллергия на латекс. Не любит много разговаривать, есть собака.',
       totalVisits: 12,
     },
-    serviceName: 'Сложное окрашивание AirTouch',
-    startTime: '10:00',
-    endTime: '11:30',
-    startHourDecimal: 10.0,
-    durationMinutes: 90,
-    specialistName: 'Елена В.',
-    price: 5500,
-    depositAmount: 1000,
+    serviceName: 'Маникюр с покрытием',
+    startTime: '08:00',
+    endTime: '10:00',
+    startHourDecimal: 8.0,
+    durationMinutes: 120,
+    specialistName: 'Екатерина',
+    price: 3000,
+    depositAmount: 300,
+    depositCurrency: 'TL',
     isDepositPaid: true,
     status: 'confirmed',
     pastVisits: [
       {
         id: 'pv-1',
-        date: '12 сентября 2024',
-        serviceName: 'Стрижка женская',
-        price: 2500,
+        date: '16.09.2026',
+        serviceName: 'Маникюр с покрытием',
         status: 'completed',
       },
       {
         id: 'pv-2',
-        date: '05 августа 2024',
-        serviceName: 'Укладка',
-        price: 1500,
+        date: '19.07.2026',
+        serviceName: 'Маникюр с покрытием',
         status: 'completed',
       }
     ],
@@ -88,62 +90,36 @@ export const mockScheduleData: Appointment[] = [
     clientId: 'cli-2',
     client: {
       id: 'cli-2',
-      name: 'Мария Иванова',
+      name: 'Мария Семенова',
+      shortName: 'Мария С.',
       phone: '+7 (900) 765-43-21',
+      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=256&q=80',
       metrics: {
-        loyaltyRate: 80,
-        attendanceRate: 90,
-        rating: 4.8,
+        loyaltyRate: 100,
+        attendanceRate: 100,
+        rating: 100,
       },
-      notes: 'Аллергия на определенные компоненты шампуня, уточнить перед началом.',
-      totalVisits: 5,
+      notes: 'Чувствительная кожа бровей. Предпочитает естественную форму.',
+      totalVisits: 4,
     },
-    serviceName: 'Стрижка и укладка',
-    startTime: '13:00',
-    endTime: '14:00',
-    startHourDecimal: 13.0,
-    durationMinutes: 60,
-    specialistName: 'Елена В.',
-    price: 3500,
-    depositAmount: 500,
+    serviceName: 'Коррекция бровей',
+    startTime: '14:00',
+    endTime: '16:00',
+    startHourDecimal: 14.0,
+    durationMinutes: 120,
+    specialistName: 'Екатерина',
+    price: 1500,
+    depositAmount: 200,
+    depositCurrency: 'TL',
     isDepositPaid: false,
     status: 'pending',
     pastVisits: [
       {
         id: 'pv-3',
-        date: '20 августа 2024',
-        serviceName: 'Стрижка',
-        price: 3000,
+        date: '20.08.2026',
+        serviceName: 'Коррекция бровей',
         status: 'completed',
       }
     ],
-  },
-  {
-    id: 'apt-3',
-    clientId: 'cli-3',
-    client: {
-      id: 'cli-3',
-      name: 'Ольга Петрова',
-      phone: '+7 (911) 222-33-44',
-      avatarUrl: 'https://i.pravatar.cc/150?u=olga',
-      metrics: {
-        loyaltyRate: 100,
-        attendanceRate: 100,
-        rating: 5.0,
-      },
-      notes: 'Любит поговорить во время процесса.',
-      totalVisits: 20,
-    },
-    serviceName: 'Маникюр с покрытием гель-лак',
-    startTime: '15:30',
-    endTime: '17:30',
-    startHourDecimal: 15.5,
-    durationMinutes: 120,
-    specialistName: 'Елена В.',
-    price: 2800,
-    depositAmount: 500,
-    isDepositPaid: true,
-    status: 'confirmed',
-    pastVisits: [],
   },
 ];

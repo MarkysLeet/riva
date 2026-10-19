@@ -1,6 +1,5 @@
 import React from 'react';
-import { Calendar, Users, Sparkles, Settings, LogOut } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Calendar, Users, Sliders, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SidebarNavProps {
@@ -9,60 +8,86 @@ interface SidebarNavProps {
 
 export function SidebarNav({ className }: SidebarNavProps) {
   return (
-    <aside className={cn("w-[240px] bg-riva-sidebar border-r border-riva-border h-full flex flex-col", className)}>
-      {/* Logo Section */}
-      <div className="p-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-riva-canvas border border-riva-border flex items-center justify-center font-serif text-lg font-bold text-riva-text-primary">
-            R
-          </div>
-          <span className="tracking-widest text-sm font-semibold text-riva-text-primary">
-            RIVA
-          </span>
-        </div>
+    <aside
+      className={cn(
+        "w-[110px] bg-[#F5EFE6] border-r border-[#EAE3D9] h-full flex flex-col items-center py-6 select-none shrink-0",
+        className
+      )}
+    >
+      {/* Brand Monogram Crest */}
+      <div className="flex flex-col items-center mb-8 px-2">
+        <svg
+          viewBox="0 0 48 54"
+          className="w-11 h-12 text-[#684C38] fill-current drop-shadow-sm mb-1"
+          aria-label="Riva Crest"
+        >
+          {/* Stylized Luxury Floral Monogram R */}
+          <path d="M12 8 C12 6, 15 4, 23 4 C33 4, 38 9, 38 17 C38 23, 34 27, 28 29 C34 32, 38 39, 41 49 C42 51, 41 52, 38 52 C35 52, 34 49, 31 42 C28 34, 24 30, 18 30 L18 48 C18 51, 16 52, 13 52 C11 52, 10 50, 11 46 L14 16 C14 12, 13 10, 12 8 Z M19 12 L17 24 C21 24, 28 24, 30 20 C31 16, 29 11, 23 11 C20 11, 19 11.5, 19 12 Z" />
+          <path d="M8 12 C10 16, 10 24, 6 29 C5 30, 4 30, 4 28 C5 24, 7 18, 7 12 C7 8, 8 6, 8 12 Z" opacity="0.7" />
+          <path d="M36 10 C39 7, 43 9, 44 14 C44 18, 41 21, 38 22 C37 20, 37 15, 36 10 Z" opacity="0.6" />
+        </svg>
+        <span className="font-serif tracking-[0.28em] text-[13px] font-semibold text-[#4A3D34] pl-1">
+          RIVA
+        </span>
       </div>
 
-      {/* Navigation Menu */}
-      <nav className="flex-1 px-4 space-y-2">
-        <button className="w-full flex items-center gap-3 px-3 py-2 bg-riva-canvas text-riva-text-primary font-medium shadow-sm rounded-2xl relative">
-          <div className="absolute left-0 w-1 h-5 bg-riva-status-actionPrimary rounded-full -ml-1" />
-          <Calendar className="w-5 h-5" />
-          <span>Календарь</span>
+      {/* Vertical Navigation Tabs */}
+      <nav className="w-full flex-1 flex flex-col space-y-3">
+        {/* 1. Календарь (Active) */}
+        <button
+          type="button"
+          className="w-full relative flex flex-col items-center justify-center py-3.5 px-1 bg-[#DFD5C6] text-[#28221D] transition-colors group cursor-pointer"
+        >
+          {/* Terracotta active indicator line on the left */}
+          <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#B35E46]" />
+          
+          <Calendar className="w-7 h-7 stroke-[1.4] text-[#28221D] mb-1" />
+          <span className="text-[13px] font-medium text-[#28221D]">
+            Календарь
+          </span>
         </button>
 
-        <button className="w-full flex items-center gap-3 px-3 py-2 text-riva-text-secondary hover:text-riva-text-primary hover:bg-riva-canvas/50 transition-all rounded-2xl">
-          <Users className="w-5 h-5" />
-          <span>Клиенты</span>
+        {/* 2. Клиенты */}
+        <button
+          type="button"
+          className="w-full flex flex-col items-center justify-center py-3 px-1 text-[#5E544C] hover:text-[#28221D] hover:bg-[#EAE2D5]/50 transition-colors cursor-pointer"
+        >
+          <Users className="w-7 h-7 stroke-[1.4] text-[#5E544C] mb-1" />
+          <span className="text-[13px] font-normal text-[#5E544C]">
+            Клиенты
+          </span>
         </button>
 
-        <button className="w-full flex items-center gap-3 px-3 py-2 text-riva-text-secondary hover:text-riva-text-primary hover:bg-riva-canvas/50 transition-all rounded-2xl">
-          <Sparkles className="w-5 h-5" />
-          <span>Услуги</span>
+        {/* 3. Услуги (Crossed brushes / services) */}
+        <button
+          type="button"
+          className="w-full flex flex-col items-center justify-center py-3 px-1 text-[#5E544C] hover:text-[#28221D] hover:bg-[#EAE2D5]/50 transition-colors cursor-pointer"
+        >
+          <svg
+            className="w-7 h-7 stroke-[1.4] text-[#5E544C] mb-1 fill-none stroke-current"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="m15.5 8.5 3 3L8 22H5v-3L15.5 8.5Z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="m18.5 5.5 1-1a2.12 2.12 0 0 0-3-3l-1 1 3 3Z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M14 6.5 9 11.5" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.5 4-4" />
+          </svg>
+          <span className="text-[13px] font-normal text-[#5E544C]">
+            Услуги
+          </span>
         </button>
 
-        <button className="w-full flex items-center gap-3 px-3 py-2 text-riva-text-secondary hover:text-riva-text-primary hover:bg-riva-canvas/50 transition-all rounded-2xl">
-          <Settings className="w-5 h-5" />
-          <span>Настройки</span>
+        {/* 4. Настройки */}
+        <button
+          type="button"
+          className="w-full flex flex-col items-center justify-center py-3 px-1 text-[#5E544C] hover:text-[#28221D] hover:bg-[#EAE2D5]/50 transition-colors cursor-pointer"
+        >
+          <Settings className="w-7 h-7 stroke-[1.4] text-[#5E544C] mb-1" />
+          <span className="text-[13px] font-normal text-[#5E544C]">
+            Настройки
+          </span>
         </button>
       </nav>
-
-      {/* Master Profile Section */}
-      <div className="p-4 border-t border-riva-border mt-auto">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Avatar className="w-8 h-8">
-              <AvatarImage src="https://i.pravatar.cc/150?u=master" />
-              <AvatarFallback>ЕВ</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-              <span className="text-sm font-medium text-riva-text-primary">Елена В.</span>
-            </div>
-          </div>
-          <button className="p-2 text-riva-text-secondary hover:text-riva-text-primary transition-colors">
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
     </aside>
   );
 }
