@@ -282,14 +282,14 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                               <input
                                 type="text"
                                 placeholder="Ваше имя (необязательно)"
-                                className="w-full bg-[#F4EFE6] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C59A87] text-[#2A2421] placeholder:text-[#827771]"
+                                className="w-full bg-[#F4EFE6] rounded-xl px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#C59A87] focus-visible:relative focus-visible:z-10 text-[#2A2421] placeholder:text-[#827771]"
                               />
                               <input
                                 type="email"
                                 placeholder="Email"
                                 value={emailOrPhone}
                                 onChange={(e) => setEmailOrPhone(e.target.value)}
-                                className="w-full bg-[#F4EFE6] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C59A87] text-[#2A2421] placeholder:text-[#827771]"
+                                className="w-full bg-[#F4EFE6] rounded-xl px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#C59A87] focus-visible:relative focus-visible:z-10 text-[#2A2421] placeholder:text-[#827771]"
                                 required
                               />
                             </div>
@@ -325,7 +325,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                                 placeholder="Имя или никнейм"
                                 value={masterName}
                                 onChange={(e) => setMasterName(e.target.value)}
-                                className="w-full bg-[#F4EFE6] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C59A87] text-[#2A2421] placeholder:text-[#827771] mb-2"
+                                className="w-full bg-[#F4EFE6] rounded-xl px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#C59A87] focus-visible:relative focus-visible:z-10 text-[#2A2421] placeholder:text-[#827771] mb-2"
                                 required
                               />
                               <AnimatePresence>
@@ -367,7 +367,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                               placeholder="Рабочий Email"
                               value={emailOrPhone}
                               onChange={(e) => setEmailOrPhone(e.target.value)}
-                              className="w-full bg-[#F4EFE6] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C59A87] text-[#2A2421] placeholder:text-[#827771]"
+                              className="w-full bg-[#F4EFE6] rounded-xl px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#C59A87] focus-visible:relative focus-visible:z-10 text-[#2A2421] placeholder:text-[#827771]"
                               required
                             />
 
@@ -395,7 +395,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                                 placeholder="Название салона"
                                 value={salonName}
                                 onChange={(e) => setSalonName(e.target.value)}
-                                className="w-full bg-[#F4EFE6] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C59A87] text-[#2A2421] placeholder:text-[#827771] mb-2"
+                                className="w-full bg-[#F4EFE6] rounded-xl px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#C59A87] focus-visible:relative focus-visible:z-10 text-[#2A2421] placeholder:text-[#827771] mb-2"
                                 required
                               />
                               <AnimatePresence>
@@ -443,7 +443,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                               placeholder="Email владельца или управляющего"
                               value={emailOrPhone}
                               onChange={(e) => setEmailOrPhone(e.target.value)}
-                              className="w-full bg-[#F4EFE6] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C59A87] text-[#2A2421] placeholder:text-[#827771]"
+                              className="w-full bg-[#F4EFE6] rounded-xl px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#C59A87] focus-visible:relative focus-visible:z-10 text-[#2A2421] placeholder:text-[#827771]"
                               required
                             />
 
