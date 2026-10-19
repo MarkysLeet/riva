@@ -152,7 +152,7 @@ export default function Home() {
             variants={containerVariants}
             initial="hidden"
             animate="show"
-            className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start"
+            className="columns-1 md:columns-2 gap-6"
           >
             {MOCK_PLACES.map((place) => (
               <motion.div
@@ -160,7 +160,7 @@ export default function Home() {
                 variants={itemVariants}
                 whileHover={{ y: -4 }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className="bg-[#FDFBF7] rounded-3xl overflow-hidden flex flex-col shadow-[0_4px_20px_rgba(42,36,33,0.05)] border border-surface"
+                className="bg-[#FDFBF7] rounded-3xl overflow-hidden flex flex-col shadow-[0_4px_20px_rgba(42,36,33,0.05)] border border-surface break-inside-avoid mb-6"
               >
                 {/* Salon Image Header */}
                 {place.type === "salon" && place.image && (
