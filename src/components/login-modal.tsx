@@ -111,7 +111,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                       placeholder="Email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-[#F4EFE6] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C59A87] text-[#2A2421] placeholder:text-[#827771]"
+                      className="w-full bg-[#F4EFE6] rounded-xl px-4 py-3 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#C59A87] focus-visible:relative focus-visible:z-10 text-[#2A2421] placeholder:text-[#827771]"
                       required
                     />
 
