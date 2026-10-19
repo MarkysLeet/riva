@@ -82,7 +82,7 @@ export default function Home() {
           {/* Categories */}
           <div className="bg-[#F0EAE1] rounded-2xl p-6">
             <h3 className="font-semibold mb-4 text-lg">Фильтры</h3>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {CATEGORIES.map(cat => (
                 <button
                   key={cat}
@@ -172,9 +172,9 @@ export default function Home() {
                   </div>
                 )}
 
-                <div className="p-5 flex flex-col flex-1">
+                <div className="p-5 flex flex-col gap-4">
                   {/* Header / Meta */}
-                  <div className="flex items-start gap-3 mb-3">
+                  <div className="flex items-start gap-3">
                     {place.type === "solo" && place.avatar && (
                       <img src={place.avatar} alt={place.name} className="w-14 h-14 rounded-full object-cover shrink-0" />
                     )}
@@ -206,13 +206,13 @@ export default function Home() {
 
                   {/* Price info for solo */}
                   {place.type === "solo" && place.priceStart && (
-                    <div className="text-sm font-medium mb-3">
+                    <div className="text-sm font-medium">
                       Маникюр с покрытием • <span className="text-muted">от {place.priceStart} TL</span>
                     </div>
                   )}
 
                   {/* Time Slots */}
-                  <div className="mt-1 mb-4">
+                  <div>
                     <div className="text-sm font-medium mb-2">Свободны сегодня</div>
                     <div className="flex flex-wrap gap-2">
                       {place.slots.map((slot, idx) => (
@@ -234,7 +234,7 @@ export default function Home() {
                   </div>
 
                   {/* Footer */}
-                  <div className="mt-auto pt-4 border-t border-surface flex items-center justify-between">
+                  <div className="pt-4 border-t border-surface flex items-center justify-between">
                     <div className="flex gap-2 flex-wrap">
                       {place.type === "salon" && place.deposit && (
                         <span className="text-sm font-medium">Депозит: {place.deposit} TL</span>
