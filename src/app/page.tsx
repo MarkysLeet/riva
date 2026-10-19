@@ -148,7 +148,7 @@ export default function Home() {
             variants={containerVariants}
             initial="hidden"
             animate="show"
-            className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            className="columns-1 md:columns-2 gap-6"
           >
             {MOCK_PLACES.map((place) => (
               <motion.div
@@ -156,7 +156,7 @@ export default function Home() {
                 variants={itemVariants}
                 whileHover={{ y: -4 }}
                 transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                className="bg-[#FDFBF7] rounded-3xl overflow-hidden flex flex-col shadow-[0_4px_20px_rgba(42,36,33,0.05)] border border-surface"
+                className="bg-[#FDFBF7] rounded-3xl overflow-hidden flex flex-col shadow-[0_4px_20px_rgba(42,36,33,0.05)] border border-surface break-inside-avoid mb-6 w-full inline-block"
               >
                 {/* Salon Image Header */}
                 {place.type === "salon" && place.image && (
@@ -174,47 +174,47 @@ export default function Home() {
 
                 <div className="p-5 flex flex-col flex-1">
                   {/* Header / Meta */}
-                  <div className="flex items-start gap-4 mb-4">
+                  <div className="flex items-start gap-3 mb-3">
                     {place.type === "solo" && place.avatar && (
-                      <img src={place.avatar} alt={place.name} className="w-16 h-16 rounded-full object-cover shrink-0" />
+                      <img src={place.avatar} alt={place.name} className="w-14 h-14 rounded-full object-cover shrink-0" />
                     )}
                     <div className="flex-1">
-                      <div className="flex justify-between items-start mb-1">
-                        <h2 className="text-xl font-bold">{place.name}</h2>
+                      <div className="flex justify-between items-start">
+                        <h2 className="text-lg font-bold leading-tight">{place.name}</h2>
                         {place.type === "solo" && (
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
-                            className="text-muted hover:text-accent-terra transition-colors"
+                            className="text-muted hover:text-accent-terra transition-colors ml-2"
                           >
                             <Heart className="w-5 h-5" />
                           </motion.button>
                         )}
                       </div>
-                      <p className="text-muted text-sm mb-2">{place.specialization}</p>
+                      <p className="text-muted text-sm mb-1">{place.specialization}</p>
 
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-medium">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium">
                         <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 fill-accent-terra text-accent-terra" />
+                          <Star className="w-3.5 h-3.5 fill-accent-terra text-accent-terra" />
                           <span>{place.rating}</span>
-                          <span className="text-muted font-normal">({place.reviews})</span>
+                          <span className="text-muted font-normal text-xs">({place.reviews})</span>
                         </div>
-                        <div className="text-muted font-normal">• {place.distance} км</div>
+                        <div className="text-muted font-normal text-xs">• {place.distance} км</div>
                       </div>
                     </div>
                   </div>
 
                   {/* Price info for solo */}
                   {place.type === "solo" && place.priceStart && (
-                    <div className="text-sm font-medium mb-4">
+                    <div className="text-sm font-medium mb-3">
                       Маникюр с покрытием • <span className="text-muted">от {place.priceStart} TL</span>
                     </div>
                   )}
 
                   {/* Time Slots */}
-                  <div className="mt-2 mb-6">
-                    <div className="text-sm font-medium mb-3">Свободны сегодня</div>
-                    <div className="flex gap-2">
+                  <div className="mt-1 mb-4">
+                    <div className="text-sm font-medium mb-2">Свободны сегодня</div>
+                    <div className="flex flex-wrap gap-2">
                       {place.slots.map((slot, idx) => (
                         <motion.button
                           key={idx}
@@ -249,7 +249,7 @@ export default function Home() {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="px-5 py-2 bg-[#C59A87] text-white rounded-full text-sm font-medium shadow-sm hover:shadow-md transition-shadow"
+                      className="px-5 py-2 bg-[#C59A87] text-white rounded-full text-sm font-medium shadow-sm hover:shadow-md transition-shadow shrink-0"
                     >
                       Записаться
                     </motion.button>
