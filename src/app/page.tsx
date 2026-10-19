@@ -28,10 +28,10 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-base text-main">
+    <div className="min-h-screen flex flex-col font-sans bg-[#FDFBF7] text-main">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full bg-base/80 backdrop-blur-md border-b border-surface/50">
-        <div className="container mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-[1200px] mx-auto px-6 h-20 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-3">
             <span className="font-serif text-3xl font-bold italic tracking-tight">R</span>
@@ -39,8 +39,8 @@ export default function Home() {
           </div>
 
           {/* Search Bar & City */}
-          <div className="hidden md:flex items-center gap-4 flex-1 max-w-xl mx-8">
-            <div className="flex-1 flex items-center bg-[#EFEAE0] rounded-full px-4 py-2.5">
+          <div className="hidden md:flex items-center gap-4 flex-1 max-w-md mx-8">
+            <div className="flex-1 flex items-center bg-[#F0EAE1] rounded-full px-4 py-2">
               <Search className="w-4 h-4 text-muted mr-3" />
               <input
                 type="text"
@@ -48,7 +48,7 @@ export default function Home() {
                 className="bg-transparent border-none outline-none w-full text-sm placeholder:text-muted"
               />
             </div>
-            <div className="flex items-center gap-1 cursor-pointer group">
+            <div className="flex items-center gap-1 cursor-pointer group shrink-0">
               <span className="text-sm font-medium">Анталья</span>
               <ChevronDown className="w-4 h-4 text-muted group-hover:text-main transition-colors" />
             </div>
@@ -59,14 +59,14 @@ export default function Home() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="px-5 py-2.5 rounded-full border border-accent-terra text-main text-sm font-medium transition-colors hover:bg-accent-terra/5"
+              className="px-4 py-1.5 rounded-full border border-accent-terra text-main text-sm font-medium transition-colors hover:bg-accent-terra/5"
             >
               Войти
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="px-5 py-2.5 rounded-full bg-surface text-main text-sm font-medium transition-colors hover:bg-accent-terra hover:text-white"
+              className="px-4 py-1.5 rounded-full bg-surface text-main text-sm font-medium transition-colors hover:bg-accent-terra hover:text-white"
             >
               Личный кабинет
             </motion.button>
@@ -75,14 +75,14 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-8 flex flex-col lg:flex-row gap-8">
+      <main className="w-full max-w-[1200px] mx-auto px-6 py-8 flex flex-col lg:flex-row gap-8">
 
         {/* Sidebar Filters */}
-        <aside className="w-full lg:w-80 shrink-0 bg-surface rounded-2xl p-6 flex flex-col gap-8 h-fit">
+        <aside className="w-full lg:w-80 shrink-0 flex flex-col gap-6 h-fit">
           {/* Categories */}
-          <div>
-            <h3 className="font-semibold mb-4 text-lg">Категории</h3>
-            <div className="flex flex-wrap gap-2">
+          <div className="bg-[#F0EAE1] rounded-2xl p-6">
+            <h3 className="font-semibold mb-4 text-lg">Фильтры</h3>
+            <div className="flex flex-wrap gap-1.5">
               {CATEGORIES.map(cat => (
                 <button
                   key={cat}
@@ -90,7 +90,7 @@ export default function Home() {
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                     activeCategory === cat
                       ? "bg-accent-terra text-white"
-                      : "bg-[#FDFBF7] text-main hover:bg-accent-green/30"
+                      : "bg-[#FDFBF7] text-main hover:bg-[#C3D5C5]/30"
                   }`}
                 >
                   {cat}
@@ -100,7 +100,7 @@ export default function Home() {
           </div>
 
           {/* Radius Slider */}
-          <div>
+          <div className="bg-[#F0EAE1] rounded-2xl p-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold text-lg">Радиус</h3>
               <span className="text-sm text-muted">до 5 км</span>
@@ -119,7 +119,7 @@ export default function Home() {
           </div>
 
           {/* Price Range */}
-          <div>
+          <div className="bg-[#F0EAE1] rounded-2xl p-6">
             <h3 className="font-semibold mb-4 text-lg">Диапазон цен</h3>
             <div className="flex items-center gap-3">
               <div className="flex-1 bg-[#FDFBF7] rounded-xl px-4 py-2.5 flex items-center">
@@ -139,7 +139,7 @@ export default function Home() {
         <div className="flex-1">
           <div className="mb-6 flex justify-between items-end">
             <div>
-              <h1 className="text-3xl font-serif mb-2">Найдено 124 варианта</h1>
+              <h1 className="text-3xl font-sans text-main mb-2">Салоны и мастера поблизости</h1>
               <p className="text-muted text-sm">Салоны и частные мастера в Анталье</p>
             </div>
           </div>
@@ -172,7 +172,7 @@ export default function Home() {
                   </div>
                 )}
 
-                <div className="p-6 flex flex-col flex-1">
+                <div className="p-5 flex flex-col flex-1">
                   {/* Header / Meta */}
                   <div className="flex items-start gap-4 mb-4">
                     {place.type === "solo" && place.avatar && (
@@ -220,10 +220,10 @@ export default function Home() {
                           key={idx}
                           whileHover={slot.available ? { scale: 1.05 } : {}}
                           whileTap={slot.available ? { scale: 0.95 } : {}}
-                          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                             slot.available
-                              ? "bg-accent-green text-main"
-                              : "bg-surface text-muted cursor-not-allowed opacity-60"
+                              ? "bg-[#C3D5C5] text-main"
+                              : "bg-[#EAE5DF] text-muted cursor-not-allowed"
                           }`}
                           disabled={!slot.available}
                         >
@@ -249,7 +249,7 @@ export default function Home() {
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="px-6 py-2.5 bg-accent-terra text-white rounded-full text-sm font-medium shadow-sm hover:shadow-md transition-shadow"
+                      className="px-5 py-2 bg-[#C59A87] text-white rounded-full text-sm font-medium shadow-sm hover:shadow-md transition-shadow"
                     >
                       Записаться
                     </motion.button>
