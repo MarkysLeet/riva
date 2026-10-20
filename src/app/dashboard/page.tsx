@@ -70,7 +70,9 @@ export default function DashboardPage() {
       id: `wait-${Date.now()}`,
       clientName: newWaitName,
       phone: newWaitPhone || '+7 (999) 000-00-00',
+      serviceName: newWaitService,
       desiredService: newWaitService,
+      desiredTime: newWaitTime,
       desiredTimeRange: newWaitTime,
       createdAt: 'Сегодня, только что',
       status: 'waiting',
@@ -211,10 +213,10 @@ export default function DashboardPage() {
                             <span>{entry.phone}</span>
                           </p>
                           <p>
-                            <span className="text-[#7A7571]">Услуга:</span> {entry.desiredService}
+                            <span className="text-[#7A7571]">Услуга:</span> {entry.serviceName || entry.desiredService}
                           </p>
                           <p>
-                            <span className="text-[#7A7571]">Желаемое время:</span> {entry.desiredTimeRange}
+                            <span className="text-[#7A7571]">Желаемое время:</span> {entry.desiredTime || entry.desiredTimeRange}
                           </p>
                         </div>
                       </div>
