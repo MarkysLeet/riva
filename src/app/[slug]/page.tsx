@@ -1,11 +1,9 @@
 import React from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Star, MapPin, Clock, Calendar, CheckCircle2, Shield, Phone, Sparkles } from 'lucide-react';
+import { ArrowLeft, Star, MapPin, Clock, Shield } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { MOCK_PLACES } from '@/lib/mock-data';
 import { CardGallery } from '@/components/card-gallery';
-
-export const instant = false;
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -15,20 +13,20 @@ export default async function SalonPublicPage({ params }: PageProps) {
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
 
-  let tenantData: any = null;
+  let tenantData: { id: string; name: string; is_solo_master?: boolean } | null = null;
 
   try {
     const supabase = await createClient();
     const { data: tenant } = await supabase
       .from('tenants')
-      .select('*')
+      .select('id, name, is_solo_master')
       .eq('slug', slug)
       .maybeSingle();
 
     if (tenant) {
       tenantData = tenant;
     }
-  } catch (err) {
+  } catch (_err) {
     // If table doesn't exist yet or connection fails, use fallback
   }
 
@@ -36,6 +34,7 @@ export default async function SalonPublicPage({ params }: PageProps) {
   const mockMatch = MOCK_PLACES.find(
     (p) =>
       p.id === slug ||
+      p.slug === slug ||
       p.name.toLowerCase().replace(/[^a-z0-9]/g, '-') === slug.toLowerCase() ||
       (slug === 'riva-lounge' && p.id === '1') ||
       (slug === 'glow-and-go' && p.id === '2') ||
@@ -43,9 +42,23 @@ export default async function SalonPublicPage({ params }: PageProps) {
       (slug === 'evgeniy-volos' && p.id === '4')
   );
 
-  const business = tenantData || {
-    name: mockMatch?.name || (slug === 'avenue' ? 'Avenue Beauty' : 'Студия красоты Riva'),
-    type: mockMatch?.type || 'salon',
+  const defaultServices = [
+    { id: '1', name: 'Маникюр с покрытием гель-лак', category: 'Ногтевой сервис', price: 600, duration: 90, deposit: 200, popular: true },
+    { id: '2', name: 'Снятие + комплексный маникюр', category: 'Ногтевой сервис', price: 750, duration: 105, deposit: 250 },
+    { id: '3', name: 'Архитектура и ламинирование бровей', category: 'Брови и ресницы', price: 500, duration: 45, deposit: 150, popular: true },
+    { id: '4', name: 'Женская стрижка и салонная укладка', category: 'Волосы', price: 850, duration: 60, deposit: 300 },
+    { id: '5', name: 'СПА-уход и восстановление структуры волос', category: 'Волосы', price: 1200, duration: 75, deposit: 400 },
+  ];
+
+  const defaultHours = [
+    { day: 'Пн — Пт', hours: '10:00 — 20:00' },
+    { day: 'Суббота', hours: '11:00 — 18:00' },
+    { day: 'Воскресенье', hours: 'Выходной' },
+  ];
+
+  const business = {
+    name: tenantData?.name || mockMatch?.name || (slug === 'avenue' ? 'Avenue Beauty' : 'Студия красоты Riva'),
+    type: (tenantData?.is_solo_master ? 'solo' : mockMatch?.type) || 'salon',
     specialization: mockMatch?.specialization || 'Премиальный ногтевой сервис и эстетический уход',
     description:
       mockMatch?.description ||
@@ -54,24 +67,21 @@ export default async function SalonPublicPage({ params }: PageProps) {
     rating: mockMatch?.rating || 4.9,
     reviewsCount: mockMatch?.reviews || 128,
     deposit: mockMatch?.deposit || 300,
-    portfolio: mockMatch?.portfolio || [
-      'https://images.unsplash.com/photo-1600948836101-f9ffda59d250?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=1000&q=80',
-    ],
-    avatar: mockMatch?.avatar || (mockMatch?.type === 'solo' ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80' : undefined),
-    services: [
-      { id: '1', name: 'Маникюр с покрытием гель-лак', category: 'Ногтевой сервис', price: 600, duration: 90, deposit: 200, popular: true },
-      { id: '2', name: 'Снятие + комплексный маникюр', category: 'Ногтевой сервис', price: 750, duration: 105, deposit: 250 },
-      { id: '3', name: 'Архитектура и ламинирование бровей', category: 'Брови и ресницы', price: 500, duration: 45, deposit: 150, popular: true },
-      { id: '4', name: 'Женская стрижка и салонная укладка', category: 'Волосы', price: 850, duration: 60, deposit: 300 },
-      { id: '5', name: 'СПА-уход и восстановление структуры волос', category: 'Волосы', price: 1200, duration: 75, deposit: 400 },
-    ],
-    workingHours: [
-      { day: 'Пн — Пт', hours: '10:00 — 20:00' },
-      { day: 'Суббота', hours: '11:00 — 18:00' },
-      { day: 'Воскресенье', hours: 'Выходной' },
-    ]
+    portfolio:
+      mockMatch?.portfolio && mockMatch.portfolio.length > 0
+        ? mockMatch.portfolio
+        : [
+            'https://images.unsplash.com/photo-1600948836101-f9ffda59d250?auto=format&fit=crop&w=1000&q=80',
+            'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1000&q=80',
+            'https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=1000&q=80',
+          ],
+    avatar:
+      mockMatch?.avatar ||
+      (mockMatch?.type === 'solo'
+        ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80'
+        : undefined),
+    services: defaultServices,
+    workingHours: defaultHours,
   };
 
   return (
@@ -176,7 +186,7 @@ export default async function SalonPublicPage({ params }: PageProps) {
                 <span>Часы приёма</span>
               </h3>
               <div className="space-y-2 text-xs sm:text-sm">
-                {business.workingHours.map((wh: any, i: number) => (
+                {business.workingHours.map((wh, i) => (
                   <div key={i} className="flex justify-between items-center text-[#5E544C]">
                     <span>{wh.day}</span>
                     <span className="font-medium text-[#2A2421]">{wh.hours}</span>
@@ -201,7 +211,7 @@ export default async function SalonPublicPage({ params }: PageProps) {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {business.services.map((srv: any) => (
+            {business.services.map((srv) => (
               <div
                 key={srv.id}
                 className="bg-white border border-[#EAE3D9] rounded-2xl p-5 flex flex-col justify-between hover:border-[#C59A87] transition-all shadow-xs group"
