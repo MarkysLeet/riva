@@ -8,6 +8,7 @@ export type PlaceType = "salon" | "solo";
 
 export interface MasterPlace {
   id: string;
+  slug: string;
   type: PlaceType;
   name: string;
   specialization: string;
@@ -31,6 +32,7 @@ export interface MasterPlace {
 export const MOCK_PLACES: MasterPlace[] = [
   {
     id: "1",
+    slug: "riva-lounge",
     type: "salon",
     name: "Riva Lounge",
     specialization: "Студия красоты",
@@ -56,6 +58,7 @@ export const MOCK_PLACES: MasterPlace[] = [
   },
   {
     id: "2",
+    slug: "glow-and-go",
     type: "salon",
     name: "Glow & Go",
     specialization: "Макияж и брови",
@@ -79,6 +82,7 @@ export const MOCK_PLACES: MasterPlace[] = [
   },
   {
     id: "3",
+    slug: "anna-smirnova",
     type: "solo",
     name: "Anna Smirnova",
     specialization: "Мастер маникюра",
@@ -106,6 +110,7 @@ export const MOCK_PLACES: MasterPlace[] = [
   },
   {
     id: "4",
+    slug: "evgeniy-volos",
     type: "solo",
     name: "Evgeniy Volos",
     specialization: "Парикмахер-стилист",
