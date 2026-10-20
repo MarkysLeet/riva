@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronDown, Pencil, Shield, Hourglass, Calendar, PlayCircle, CheckCircle2, Check, X } from 'lucide-react';
+import { ChevronLeft, ChevronDown, Pencil, Shield, Hourglass, Calendar, PlayCircle, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Appointment, AppointmentStatus } from './mockScheduleData';
 
@@ -28,7 +28,7 @@ export function AppointmentDetailsSidebar({
       setNoteText('');
     }
     setIsEditingNotes(false);
-  }, [appointment?.id]);
+  }, [appointment?.id, appointment?.client.notes]);
 
   if (!appointment) {
     return (
