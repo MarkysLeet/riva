@@ -1,13 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Pencil, ChevronLeft, ChevronRight, Plus, Users, User, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { AppointmentCard } from './AppointmentCard';
 import { NewAppointmentModal } from './NewAppointmentModal';
 import {
   MOCK_SPECIALISTS,
   type Appointment,
-  type Specialist,
 } from './mockScheduleData';
 import { cn } from '@/lib/utils';
 
