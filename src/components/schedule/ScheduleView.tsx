@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { AppointmentCard } from './AppointmentCard';
 import { NewAppointmentModal } from './NewAppointmentModal';
@@ -33,6 +33,20 @@ export function ScheduleView({
     specialistId: undefined,
   });
 
+  const [dateFormatted, setDateFormatted] = useState<string>('Сегодня');
+
+  useEffect(() => {
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + currentDateOffset);
+    setDateFormatted(
+      targetDate.toLocaleDateString('ru-RU', {
+        day: 'numeric',
+        month: 'long',
+        weekday: 'short',
+      })
+    );
+  }, [currentDateOffset]);
+
   const timelineStartHour = 8;
   const timelineEndHour = 20;
   const hours = Array.from(
@@ -44,15 +58,6 @@ export function ScheduleView({
     selectedMasterFilter === 'all'
       ? MOCK_SPECIALISTS
       : MOCK_SPECIALISTS.filter((s) => s.id === selectedMasterFilter);
-
-  // Date formatting calculation
-  const targetDate = new Date();
-  targetDate.setDate(targetDate.getDate() + currentDateOffset);
-  const dateFormatted = targetDate.toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    weekday: 'short',
-  });
 
   const handleCellClick = (hour: number, specialistId?: string) => {
     setModalSlot({ hour, specialistId });
