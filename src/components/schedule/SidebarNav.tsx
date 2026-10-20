@@ -14,7 +14,8 @@ export function SidebarNav({ className }: SidebarNavProps) {
   const pathname = usePathname();
 
   const isCalendar = pathname === '/dashboard';
-  const isSettings = pathname === '/dashboard/settings';
+  const isServices = pathname?.startsWith('/dashboard/services');
+  const isSettings = pathname?.startsWith('/dashboard/settings');
 
   return (
     <aside
@@ -68,13 +69,17 @@ export function SidebarNav({ className }: SidebarNavProps) {
           </span>
         </button>
 
-        {/* 3. Услуги (Crossed brushes / services) */}
-        <button
-          type="button"
-          className="w-full flex flex-col items-center justify-center py-3 px-1 text-[#5E544C] hover:text-[#28221D] hover:bg-[#EAE2D5]/50 transition-colors cursor-pointer"
+        {/* 3. Услуги */}
+        <Link
+          href="/dashboard/services"
+          className={cn(
+            "w-full relative flex flex-col items-center justify-center py-3.5 px-1 transition-colors group cursor-pointer",
+            isServices ? "bg-[#DFD5C6] text-[#28221D]" : "text-[#5E544C] hover:text-[#28221D] hover:bg-[#EAE2D5]/50"
+          )}
         >
+          {isServices && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#B35E46]" />}
           <svg
-            className="w-7 h-7 stroke-[1.4] text-[#5E544C] mb-1 fill-none stroke-current"
+            className="w-7 h-7 stroke-[1.4] mb-1 fill-none stroke-current"
             viewBox="0 0 24 24"
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="m15.5 8.5 3 3L8 22H5v-3L15.5 8.5Z" />
@@ -82,10 +87,10 @@ export function SidebarNav({ className }: SidebarNavProps) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M14 6.5 9 11.5" />
             <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 15.5 4-4" />
           </svg>
-          <span className="text-[13px] font-normal text-[#5E544C]">
+          <span className={cn("text-[13px]", isServices ? "font-medium" : "font-normal")}>
             Услуги
           </span>
-        </button>
+        </Link>
 
         {/* 4. Настройки */}
         <Link
