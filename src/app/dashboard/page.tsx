@@ -6,7 +6,6 @@ import { ScheduleView } from '@/components/schedule/ScheduleView';
 import { AppointmentDetailsSidebar } from '@/components/schedule/AppointmentDetailsSidebar';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { mockScheduleData } from '@/components/schedule/mockScheduleData';
-import { Settings, Info } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardPage() {
@@ -22,23 +21,20 @@ export default function DashboardPage() {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        {/* Top Status Bar (Integration requirement) */}
-        <header className="h-16 border-b border-[#EAE3D9] bg-white flex items-center justify-between px-6 shrink-0">
-          <h1 className="font-serif text-lg font-medium text-main">Календарь записей</h1>
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FAF7F2] border border-[#EAE3D9]">
-              <div className="w-2 h-2 rounded-full bg-accent-terra" />
-              <span className="text-xs font-medium text-main">Черновик (не опубликован)</span>
-            </div>
-            <Link
-              href="/dashboard/settings"
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-main text-white hover:bg-[#3E352F] transition-colors"
-            >
-              <Settings className="w-4 h-4" />
-              <span className="hidden sm:inline">Настройки бизнеса</span>
-            </Link>
+        {/* Unobtrusive Setup Mode Notification Banner (Quiet Luxury) */}
+        <div className="bg-[#F8F4EE] border-b border-[#EAE3D9] px-4 sm:px-8 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs shrink-0">
+          <div className="flex items-center gap-2 text-[#7A7571]">
+            <span className="w-2 h-2 rounded-full bg-[#C59A87] shrink-0" />
+            <span>Бизнес находится в режиме настройки и пока не виден клиентам в каталоге.</span>
           </div>
-        </header>
+          <Link
+            href="/dashboard/settings"
+            className="font-medium text-[#2A2421] hover:text-[#C59A87] transition-colors inline-flex items-center gap-1.5 shrink-0 self-end sm:self-auto"
+          >
+            <span>Настройки бизнеса</span>
+            <span>→</span>
+          </Link>
+        </div>
 
         <div className="flex-1 flex min-h-0">
           <ScheduleView
