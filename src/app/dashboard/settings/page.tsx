@@ -145,7 +145,7 @@ export default function SettingsPage() {
               </div>
 
               <div className="bg-white border border-[#EAE3D9] rounded-3xl p-6 sm:p-8 shadow-[0_4px_20px_-2px_rgba(36,34,32,0.04)]">
-                {activeTab === 'general' || activeTab === 'photos' && (
+                {(activeTab === 'general' || activeTab === 'photos') && (
                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-5">
                     <div className="flex flex-col gap-2">
                       <Label htmlFor="name">Название бизнеса</Label>
@@ -339,7 +339,7 @@ export default function SettingsPage() {
               </div>
 
               {/* Replica of the Card from page.tsx */}
-              <div className="bg-white rounded-2xl border border-[#EAE3D9] overflow-hidden flex flex-col shadow-[0_12px_32px_-4px_rgba(36,34,32,0.07)] pointer-events-none">
+              <div className="bg-white rounded-2xl border border-[#EAE3D9] overflow-hidden flex flex-col shadow-[0_12px_32px_-4px_rgba(36,34,32,0.07)]">
                 <CardGallery
                   images={formData.portfolioImages.length > 0 ? formData.portfolioImages : ['/api/placeholder/400/300']}
                   alt={formData.name || 'Без названия'}
