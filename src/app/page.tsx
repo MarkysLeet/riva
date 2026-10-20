@@ -142,7 +142,7 @@ export default function Home() {
                 <span className="font-serif text-lg font-bold tracking-[0.25em] text-main leading-none">
                   R I V A
                 </span>
-                <span className="text-[9px] font-sans tracking-[0.2em] text-[#827771] uppercase font-semibold mt-1">
+                <span className="text-[9px] font-sans tracking-[0.2em] text-[#5E544C] uppercase font-semibold mt-1">
                   BEAUTY PLATFORM
                 </span>
               </div>
@@ -152,17 +152,17 @@ export default function Home() {
           {/* Search Bar & City (Desktop) */}
           <div className="hidden md:flex items-center gap-3 flex-1 justify-center max-w-xl mx-8">
             <div className="w-full flex items-center bg-[#F4EFE6]/70 border border-[#EAE3D9] h-11 rounded-2xl px-4 focus-within:border-[#C59A87] transition-colors">
-              <Search className="w-4 h-4 text-[#827771] mr-3 shrink-0" />
+              <Search className="w-4 h-4 text-[#7A7571] mr-3 shrink-0" />
               <input
                 type="text"
                 placeholder="Поиск салонов, мастеров или услуг"
-                className="bg-transparent border-none outline-none w-full text-sm text-main placeholder:text-[#827771]"
+                className="bg-transparent border-none outline-none w-full text-sm text-main placeholder:text-[#7A7571]"
               />
               <div className="h-5 w-[1px] bg-[#EAE3D9] mx-3 shrink-0" />
               <div className="flex items-center gap-1.5 cursor-pointer group shrink-0 text-main hover:text-[#C59A87] transition-colors">
-                <MapPin className="w-4 h-4 text-[#827771] group-hover:text-[#C59A87] transition-colors" />
+                <MapPin className="w-4 h-4 text-[#7A7571] group-hover:text-[#C59A87] transition-colors" />
                 <span className="text-sm font-medium">Анталья</span>
-                <ChevronDown className="w-3.5 h-3.5 text-[#827771]" />
+                <ChevronDown className="w-3.5 h-3.5 text-[#7A7571]" />
               </div>
             </div>
           </div>
@@ -195,7 +195,7 @@ export default function Home() {
                       await supabase.auth.signOut();
                     }
                   }}
-                  className="text-[#827771] hover:text-main transition-colors p-2"
+                  className="text-[#7A7571] hover:text-main transition-colors p-2"
                   title="Выйти"
                 >
                   <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -232,16 +232,16 @@ export default function Home() {
         {/* Mobile Search Bar */}
         <div className="md:hidden border-t border-[#EAE3D9] bg-base px-4 py-3 flex gap-2">
           <div className="flex-1 flex items-center bg-[#F4EFE6] border border-[#EAE3D9] h-10 rounded-xl px-3.5">
-            <Search className="w-4 h-4 text-[#827771] mr-2.5 shrink-0" />
+            <Search className="w-4 h-4 text-[#7A7571] mr-2.5 shrink-0" />
             <input
               type="text"
               placeholder="Салоны, мастера..."
-              className="bg-transparent border-none outline-none w-full text-sm text-main placeholder:text-[#827771]"
+              className="bg-transparent border-none outline-none w-full text-sm text-main placeholder:text-[#7A7571]"
             />
           </div>
           <div className="bg-[#F4EFE6] border border-[#EAE3D9] h-10 rounded-xl px-3 flex items-center justify-center shrink-0">
             <span className="text-sm font-medium text-main mr-1">Ант.</span>
-            <ChevronDown className="w-3.5 h-3.5 text-[#827771]" />
+            <ChevronDown className="w-3.5 h-3.5 text-[#7A7571]" />
           </div>
         </div>
       </header>
@@ -267,12 +267,12 @@ export default function Home() {
                   {isSelected && <X className="w-3 h-3" />}
                 </button>
               );
-            })}
+            })};
           </div>
           <Sheet>
             <SheetTrigger asChild>
               <button className="shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-white text-main border border-[#EAE3D9] shadow-xs">
-                <SlidersHorizontal className="w-4 h-4 text-[#827771]" />
+                <SlidersHorizontal className="w-4 h-4 text-[#7A7571]" />
               </button>
             </SheetTrigger>
             <SheetContent
@@ -291,7 +291,7 @@ export default function Home() {
                     <span className="font-semibold text-sm text-main">
                       Радиус
                     </span>
-                    <span className="text-xs text-[#827771]">{radius} км</span>
+                    <span className="text-xs text-[#7A7571]">{radius} км</span>
                   </div>
                   <Slider
                     defaultValue={[radius]}
@@ -303,7 +303,7 @@ export default function Home() {
                       setRadius(Array.isArray(val) ? val[0] : val)
                     }
                   />
-                  <div className="flex justify-between items-center text-xs text-[#827771] mt-2">
+                  <div className="flex justify-between items-center text-xs text-[#7A7571] mt-2">
                     <span>0</span>
                     <span>15+ км</span>
                   </div>
@@ -315,7 +315,7 @@ export default function Home() {
                   </span>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 bg-white border border-[#EAE3D9] rounded-xl px-3 py-2">
-                      <span className="block text-[11px] text-[#827771]">От</span>
+                      <span className="block text-[11px] text-[#7A7571]">От</span>
                       <div className="flex items-baseline">
                         <input
                           type="number"
@@ -323,12 +323,12 @@ export default function Home() {
                           onChange={(e) => setPriceMin(Number(e.target.value))}
                           className="w-full bg-transparent outline-none text-sm font-semibold text-main"
                         />
-                        <span className="text-xs text-[#827771] ml-1">TL</span>
+                        <span className="text-xs text-[#7A7571] ml-1">TL</span>
                       </div>
                     </div>
-                    <span className="text-[#827771] font-medium">—</span>
+                    <span className="text-[#7A7571] font-medium">—</span>
                     <div className="flex-1 bg-white border border-[#EAE3D9] rounded-xl px-3 py-2">
-                      <span className="block text-[11px] text-[#827771]">До</span>
+                      <span className="block text-[11px] text-[#7A7571]">До</span>
                       <div className="flex items-baseline">
                         <input
                           type="number"
@@ -336,7 +336,7 @@ export default function Home() {
                           onChange={(e) => setPriceMax(Number(e.target.value))}
                           className="w-full bg-transparent outline-none text-sm font-semibold text-main"
                         />
-                        <span className="text-xs text-[#827771] ml-1">TL</span>
+                        <span className="text-xs text-[#7A7571] ml-1">TL</span>
                       </div>
                     </div>
                   </div>
@@ -358,7 +358,7 @@ export default function Home() {
               <h2 className="font-serif text-lg font-semibold text-[#2A2421] tracking-tight">
                 Фильтры
               </h2>
-              <SlidersHorizontal className="w-4 h-4 text-[#827771]" />
+              <SlidersHorizontal className="w-4 h-4 text-[#7A7571]" />
             </div>
 
             {/* Categories */}
@@ -402,7 +402,7 @@ export default function Home() {
             <div>
               <div className="flex justify-between items-center mb-3">
                 <span className="font-semibold text-sm text-main">Радиус</span>
-                <span className="text-xs font-medium text-[#827771]">{radius} км</span>
+                <span className="text-xs font-medium text-[#7A7571]">{radius} км</span>
               </div>
               <Slider
                 defaultValue={[radius]}
@@ -414,7 +414,7 @@ export default function Home() {
                   setRadius(Array.isArray(val) ? val[0] : val)
                 }
               />
-              <div className="flex justify-between items-center text-xs text-[#827771] mt-2">
+              <div className="flex justify-between items-center text-xs text-[#7A7571] mt-2">
                 <span>0</span>
                 <span>15+ км</span>
               </div>
@@ -430,7 +430,7 @@ export default function Home() {
               </span>
               <div className="flex items-center gap-2">
                 <div className="flex-1 bg-[#FAF6F0] border border-[#EAE3D9] rounded-xl px-3 py-2 shadow-xs">
-                  <span className="block text-[11px] text-[#827771]">От</span>
+                  <span className="block text-[11px] text-[#7A7571]">От</span>
                   <div className="flex items-baseline">
                     <input
                       type="number"
@@ -438,12 +438,12 @@ export default function Home() {
                       onChange={(e) => setPriceMin(Number(e.target.value))}
                       className="w-full bg-transparent outline-none text-sm font-semibold text-main"
                     />
-                    <span className="text-xs text-[#827771] ml-1">TL</span>
+                    <span className="text-xs text-[#7A7571] ml-1">TL</span>
                   </div>
                 </div>
-                <span className="text-[#827771] font-medium">—</span>
+                <span className="text-[#7A7571] font-medium">—</span>
                 <div className="flex-1 bg-[#FAF6F0] border border-[#EAE3D9] rounded-xl px-3 py-2 shadow-xs">
-                  <span className="block text-[11px] text-[#827771]">До</span>
+                  <span className="block text-[11px] text-[#7A7571]">До</span>
                   <div className="flex items-baseline">
                     <input
                       type="number"
@@ -451,7 +451,7 @@ export default function Home() {
                       onChange={(e) => setPriceMax(Number(e.target.value))}
                       className="w-full bg-transparent outline-none text-sm font-semibold text-main"
                     />
-                    <span className="text-xs text-[#827771] ml-1">TL</span>
+                    <span className="text-xs text-[#7A7571] ml-1">TL</span>
                   </div>
                 </div>
               </div>
@@ -466,12 +466,12 @@ export default function Home() {
               <h1 className="font-serif text-3xl md:text-[34px] font-normal text-main tracking-tight mb-1">
                 Салоны и мастера поблизости
               </h1>
-              <p className="text-sm text-[#827771]">
+              <p className="text-sm text-[#7A7571]">
                 Салоны и частные мастера в Анталье • 24 варианта
               </p>
             </div>
             {/* Quick aesthetic pill indicator */}
-            <div className="hidden sm:flex items-center gap-2 text-xs text-[#827771]">
+            <div className="hidden sm:flex items-center gap-2 text-xs text-[#7A7571]">
               <span className="w-2 h-2 rounded-full bg-[#8A9580]" />
               <span>Листайте фото работ в карточках</span>
             </div>
@@ -494,6 +494,8 @@ export default function Home() {
                   ? [place.avatar]
                   : [];
 
+              const targetSlug = place.slug || place.id;
+
               return (
                 <motion.div
                   key={place.id}
@@ -514,33 +516,36 @@ export default function Home() {
                         />
 
                         <div className="p-5 pb-3">
-                          <h2 className="font-serif text-xl font-medium text-main tracking-tight">
-                            {place.name}
-                          </h2>
+                          <Link href={`/${targetSlug}`}>
+                            <h2 className="font-serif text-xl font-medium text-main tracking-tight hover:text-[#C59A87] transition-colors cursor-pointer">
+                              {place.name}
+                            </h2>
+                          </Link>
                           <div className="flex items-center gap-1.5 text-sm font-medium mt-1">
                             <Star className="w-4 h-4 fill-main text-main" />
                             <span className="text-main">{place.rating}</span>
-                            <span className="text-[#827771] font-normal">
+                            <span className="text-[#7A7571] font-normal">
                               • {place.distance} км
                             </span>
                           </div>
-                          <p className="text-sm text-[#5A504B] mt-2 line-clamp-1">
+                          <p className="text-sm text-[#5E544C] mt-2 line-clamp-1">
                             {place.description}
                           </p>
 
                           {/* Slots */}
                           <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-3">
                             {place.slots.map((slot, idx) => (
-                              <button
-                                key={idx}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 cursor-pointer ${
-                                  slot.highlighted
-                                    ? "bg-[#C59A87] text-white shadow-xs"
-                                    : "bg-[#8A9580]/15 text-[#3D4735] hover:bg-[#8A9580]/25 border border-[#8A9580]/25"
-                                }`}
-                              >
-                                {slot.time}
-                              </button>
+                              <Link key={idx} href={`/${targetSlug}`}>
+                                <button
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 cursor-pointer ${
+                                    slot.highlighted
+                                      ? "bg-[#C59A87] text-white shadow-xs"
+                                      : "bg-[#8A9580]/15 text-[#2A2421] hover:bg-[#8A9580]/25 border border-[#8A9580]/25"
+                                  }`}
+                                >
+                                  {slot.time}
+                                </button>
+                              </Link>
                             ))}
                           </div>
                         </div>
@@ -551,9 +556,11 @@ export default function Home() {
                         <span className="text-sm font-medium text-main">
                           Задаток: {place.deposit} TL
                         </span>
-                        <button className="h-9 px-5 rounded-xl bg-[#C59A87] text-white text-sm font-medium hover:bg-[#B58976] transition-colors shadow-xs cursor-pointer">
-                          Записаться
-                        </button>
+                        <Link href={`/${targetSlug}`}>
+                          <button className="h-9 px-5 rounded-xl bg-[#C59A87] text-white text-sm font-medium hover:bg-[#B58976] transition-colors shadow-xs cursor-pointer">
+                            Записаться
+                          </button>
+                        </Link>
                       </div>
                     </div>
                   ) : (
@@ -579,40 +586,43 @@ export default function Home() {
                               className="w-13 h-13 rounded-full object-cover shrink-0 border border-[#EAE3D9] mt-0.5"
                             />
                             <div className="flex-1 min-w-0">
-                              <h2 className="font-serif text-xl font-medium text-main tracking-tight">
-                                {place.name}
-                              </h2>
-                              <p className="text-sm text-[#827771] mt-0.5">
+                              <Link href={`/${targetSlug}`}>
+                                <h2 className="font-serif text-xl font-medium text-main tracking-tight hover:text-[#C59A87] transition-colors cursor-pointer">
+                                  {place.name}
+                                </h2>
+                              </Link>
+                              <p className="text-sm text-[#7A7571] mt-0.5">
                                 {place.specialization}
                               </p>
                               <div className="flex items-center gap-1.5 text-sm font-medium mt-1">
                                 <Star className="w-4 h-4 fill-main text-main" />
                                 <span className="text-main">{place.rating}</span>
-                                <span className="text-[#827771] font-normal">
+                                <span className="text-[#7A7571] font-normal">
                                   • {place.distance} км
                                 </span>
                               </div>
                             </div>
                           </div>
 
-                          <p className="text-sm text-[#5A504B] mt-3 line-clamp-2 leading-relaxed">
+                          <p className="text-sm text-[#5E544C] mt-3 line-clamp-2 leading-relaxed">
                             {place.description}
                           </p>
 
                           {/* Slots for solo master */}
                           <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-3">
                             {place.slots.map((slot, idx) => (
-                              <button
-                                key={idx}
-                                disabled={!slot.available}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${
-                                  !slot.available
-                                    ? "bg-[#F4EFE6] text-[#A6A09B] cursor-not-allowed line-through"
-                                    : "bg-[#8A9580]/15 text-[#3D4735] hover:bg-[#8A9580]/25 border border-[#8A9580]/25 cursor-pointer"
-                                }`}
-                              >
-                                {slot.time}
-                              </button>
+                              <Link key={idx} href={`/${targetSlug}`}>
+                                <button
+                                  disabled={!slot.available}
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${
+                                    !slot.available
+                                      ? "bg-[#F4EFE6] text-[#7A7571] cursor-not-allowed line-through"
+                                      : "bg-[#8A9580]/15 text-[#2A2421] hover:bg-[#8A9580]/25 border border-[#8A9580]/25 cursor-pointer"
+                                  }`}
+                                >
+                                  {slot.time}
+                                </button>
+                              </Link>
                             ))}
                           </div>
                         </div>
@@ -621,16 +631,18 @@ export default function Home() {
                       {/* Footer */}
                       <div className="px-5 pb-5 pt-3 border-t border-[#F0ECE4] flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-main min-w-0">
-                          <CreditCard className="w-4 h-4 text-[#827771] shrink-0" />
+                          <CreditCard className="w-4 h-4 text-[#7A7571] shrink-0" />
                           <span className="truncate">
                             {place.primaryService?.name} • от{" "}
                             {place.primaryService?.price} TL • от{" "}
                             {place.primaryService?.duration} мин
                           </span>
                         </div>
-                        <button className="h-9 px-5 rounded-xl bg-[#C59A87] text-white text-sm font-medium hover:bg-[#B58976] transition-colors shrink-0 shadow-xs cursor-pointer">
-                          Записаться
-                        </button>
+                        <Link href={`/${targetSlug}`}>
+                          <button className="h-9 px-5 rounded-xl bg-[#C59A87] text-white text-sm font-medium hover:bg-[#B58976] transition-colors shrink-0 shadow-xs cursor-pointer">
+                            Записаться
+                          </button>
+                        </Link>
                       </div>
                     </div>
                   )}
