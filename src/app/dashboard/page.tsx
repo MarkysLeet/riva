@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { SidebarNav } from '@/components/schedule/SidebarNav';
 import { ScheduleView } from '@/components/schedule/ScheduleView';
 import { AppointmentDetailsSidebar } from '@/components/schedule/AppointmentDetailsSidebar';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import {
   mockScheduleData,
   mockWaitlistData,
@@ -13,65 +13,73 @@ import {
   type WaitlistEntry,
 } from '@/components/schedule/mockScheduleData';
 import Link from 'next/link';
-import { Calendar, UserPlus, Phone, Clock, Sparkles, Check, Trash2 } from 'lucide-react';
+import { Calendar, UserPlus, Phone, Trash2 } from 'lucide-react';
 
 export default function DashboardPage() {
   const [appointments, setAppointments] = useState<Appointment[]>(mockScheduleData);
-  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>(mockWaitlistData);
-  const [activeTab, setActiveTab] = useState<'calendar' | 'waitlist'>('calendar');
-  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>('apt-1');
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+  const [currentView, setCurrentView] = useState<'schedule' | 'waitlist'>('schedule');
 
-  // New waitlist modal state
-  const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false);
-  const [wlName, setWlName] = useState('');
-  const [wlPhone, setWlPhone] = useState('');
-  const [wlService, setWlService] = useState('Маникюр с покрытием');
-  const [wlTime, setWlTime] = useState('Сегодня после 15:00');
+  // Waitlist state
+  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>(mockWaitlistData);
+  const [isAddWaitlistOpen, setIsAddWaitlistOpen] = useState(false);
+  const [newWaitName, setNewWaitName] = useState('');
+  const [newWaitPhone, setNewWaitPhone] = useState('');
+  const [newWaitService, setNewWaitService] = useState('Маникюр с покрытием гель-лак');
+  const [newWaitTime, setNewWaitTime] = useState('Вторая половина дня (после 14:00)');
 
   const selectedAppointment =
-    appointments.find((a) => a.id === selectedAppointmentId) || null;
+    appointments.find((apt) => apt.id === selectedAppointmentId) || null;
 
+  // Status transitions
   const handleStatusChange = (appointmentId: string, newStatus: AppointmentStatus) => {
     setAppointments((prev) =>
-      prev.map((apt) =>
-        apt.id === appointmentId ? { ...apt, status: newStatus } : apt
-      )
+      prev.map((apt) => (apt.id === appointmentId ? { ...apt, status: newStatus } : apt))
     );
   };
 
+  // Notes update
   const handleSaveNotes = (appointmentId: string, notes: string) => {
     setAppointments((prev) =>
       prev.map((apt) =>
         apt.id === appointmentId
-          ? { ...apt, client: { ...apt.client, notes } }
+          ? {
+              ...apt,
+              client: {
+                ...apt.client,
+                notes,
+              },
+            }
           : apt
       )
     );
   };
 
+  // Add new appointment from schedule grid
   const handleAddAppointment = (newApt: Appointment) => {
     setAppointments((prev) => [...prev, newApt]);
     setSelectedAppointmentId(newApt.id);
   };
 
+  // Add to waitlist
   const handleAddWaitlist = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!wlName.trim()) return;
+    if (!newWaitName.trim()) return;
 
-    const newEntry: WaitlistEntry = {
-      id: `wl-${Date.now()}`,
-      clientName: wlName,
-      phone: wlPhone || '+7 (999) 000-00-00',
-      serviceName: wlService,
-      preferredMaster: 'Любой мастер',
-      desiredTime: wlTime,
-      createdAt: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+    const entry: WaitlistEntry = {
+      id: `wait-${Date.now()}`,
+      clientName: newWaitName,
+      phone: newWaitPhone || '+7 (999) 000-00-00',
+      desiredService: newWaitService,
+      desiredTimeRange: newWaitTime,
+      createdAt: 'Сегодня, только что',
+      status: 'waiting',
     };
 
-    setWaitlist((prev) => [newEntry, ...prev]);
-    setIsWaitlistModalOpen(false);
-    setWlName('');
-    setWlPhone('');
+    setWaitlist((prev) => [entry, ...prev]);
+    setNewWaitName('');
+    setNewWaitPhone('');
+    setIsAddWaitlistOpen(false);
   };
 
   const handleRemoveWaitlist = (id: string) => {
@@ -79,67 +87,57 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex h-screen bg-[#FAF7F2] overflow-hidden font-sans text-[#2A2421]">
-      {/* Desktop Left Sidebar */}
-      <SidebarNav className="hidden lg:flex" />
+    <div className="flex h-screen w-full bg-[#FAF7F2] overflow-hidden font-sans">
+      {/* 1. Left Icon Navigation Sidebar */}
+      <SidebarNav />
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        {/* Unobtrusive Setup Mode Notification Banner (Quiet Luxury) */}
-        <div className="bg-[#F8F4EE] border-b border-[#EAE3D9] px-4 sm:px-8 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs shrink-0">
-          <div className="flex items-center gap-2 text-[#5E544C]">
-            <span className="w-2 h-2 rounded-full bg-[#C59A87] shrink-0" />
-            <span>Бизнес находится в режиме настройки и пока не виден клиентам в каталоге.</span>
-          </div>
-          <Link
-            href="/dashboard/settings"
-            className="font-medium text-[#2A2421] hover:text-[#C59A87] transition-colors inline-flex items-center gap-1.5 shrink-0 self-end sm:self-auto"
-          >
-            <span>Настройки бизнеса</span>
-            <span>→</span>
-          </Link>
-        </div>
-
-        {/* View Mode Switcher (Расписание / Лист ожидания) */}
-        <div className="bg-[#FAF7F2] px-4 sm:px-8 pt-3 pb-1 flex items-center justify-between gap-3 border-b border-[#EAE3D9]/60 shrink-0">
+      {/* 2. Main Center Content Workspace */}
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+        {/* Top View Selector Bar */}
+        <div className="bg-[#FAF7F2] border-b border-[#EAE3D9] px-6 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setActiveTab('calendar')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer flex items-center gap-2 ${
-                activeTab === 'calendar'
+              onClick={() => setCurrentView('schedule')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
+                currentView === 'schedule'
                   ? 'bg-[#2A2421] text-white shadow-xs'
-                  : 'bg-[#EDE5D8] text-[#5E544C] hover:text-[#2A2421]'
+                  : 'bg-white text-[#5E544C] border border-[#EAE3D9] hover:text-[#2A2421]'
               }`}
             >
-              <Calendar className="w-3.5 h-3.5 stroke-[2]" />
-              <span>Расписание</span>
+              Расписание
             </button>
             <button
-              onClick={() => setActiveTab('waitlist')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer flex items-center gap-2 ${
-                activeTab === 'waitlist'
+              onClick={() => setCurrentView('waitlist')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+                currentView === 'waitlist'
                   ? 'bg-[#2A2421] text-white shadow-xs'
-                  : 'bg-[#EDE5D8] text-[#5E544C] hover:text-[#2A2421]'
+                  : 'bg-white text-[#5E544C] border border-[#EAE3D9] hover:text-[#2A2421]'
               }`}
             >
-              <UserPlus className="w-3.5 h-3.5 stroke-[2]" />
-              <span>Лист ожидания ({waitlist.length})</span>
+              <span>Лист ожидания</span>
+              {waitlist.length > 0 && (
+                <span className={`text-[11px] px-1.5 py-0.2 rounded-full font-semibold ${
+                  currentView === 'waitlist' ? 'bg-[#C59A87] text-white' : 'bg-[#EDE5D8] text-[#2A2421]'
+                }`}>
+                  {waitlist.length}
+                </span>
+              )}
             </button>
           </div>
 
-          {activeTab === 'waitlist' && (
-            <button
-              onClick={() => setIsWaitlistModalOpen(true)}
-              className="px-3.5 py-1.5 rounded-xl bg-[#C59A87] hover:bg-[#B58976] text-white text-xs font-medium transition-colors cursor-pointer shadow-xs"
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="text-xs text-[#7A7571] hover:text-[#2A2421] transition-colors"
             >
-              + Добавить в лист
-            </button>
-          )}
+              В каталог
+            </Link>
+          </div>
         </div>
 
-        {/* Dynamic View Container */}
-        {activeTab === 'calendar' ? (
-          <div className="flex-1 flex min-h-0">
+        {/* View Switcher Container */}
+        {currentView === 'schedule' ? (
+          <div className="flex-1 flex overflow-hidden">
             <ScheduleView
               appointments={appointments}
               selectedAppointmentId={selectedAppointmentId}
@@ -147,7 +145,7 @@ export default function DashboardPage() {
               onAddAppointment={handleAddAppointment}
             />
 
-            {/* Desktop Right Sidebar (Selected Appointment Context Panel) */}
+            {/* Desktop Sticky Right Sidebar */}
             <div className="hidden xl:block h-full">
               <AppointmentDetailsSidebar
                 appointment={selectedAppointment}
@@ -159,74 +157,84 @@ export default function DashboardPage() {
           </div>
         ) : (
           /* WAITLIST VIEW */
-          <div className="flex-1 overflow-y-auto p-4 sm:p-8">
+          <div className="flex-1 p-6 sm:p-8 overflow-y-auto bg-[#FAF7F2]">
             <div className="max-w-4xl mx-auto">
-              <div className="mb-6">
-                <h2 className="font-serif text-2xl font-medium text-[#2A2421] mb-1">
-                  Лист ожидания клиентов
-                </h2>
-                <p className="text-xs sm:text-sm text-[#7A7571]">
-                  Клиенты, желающие попасть на процедуру при освобождении слота или отмене
-                </p>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="font-serif text-2xl font-medium text-[#2A2421]">
+                    Лист ожидания (Waitlist)
+                  </h2>
+                  <p className="text-xs sm:text-sm text-[#7A7571] mt-0.5">
+                    Клиенты, ожидающие освобождения удобного окна или отмены записей
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsAddWaitlistOpen(true)}
+                  className="h-9 px-4 rounded-xl bg-[#2A2421] hover:bg-[#C59A87] text-white text-xs sm:text-sm font-medium inline-flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Добавить клиента</span>
+                </button>
               </div>
 
               {waitlist.length === 0 ? (
-                <div className="bg-white rounded-3xl p-10 border border-[#EAE3D9] text-center">
-                  <p className="text-sm text-[#7A7571]">
-                    В листе ожидания пока нет клиентов
+                <div className="bg-white border border-[#EAE3D9] rounded-2xl p-12 text-center">
+                  <div className="w-12 h-12 rounded-full bg-[#F4EFE6] text-[#7A7571] flex items-center justify-center mx-auto mb-3">
+                    <UserPlus className="w-6 h-6" />
+                  </div>
+                  <h3 className="font-medium text-base text-[#2A2421] mb-1">
+                    Лист ожидания пуст
+                  </h3>
+                  <p className="text-xs sm:text-sm text-[#7A7571] max-w-sm mx-auto">
+                    Когда у вас закончатся свободные слоты, добавляйте желающих сюда, чтобы быстро заполнять отмены.
                   </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {waitlist.map((item) => (
+                  {waitlist.map((entry) => (
                     <div
-                      key={item.id}
-                      className="bg-white border border-[#EAE3D9] rounded-2xl p-5 shadow-xs flex flex-col justify-between hover:border-[#C59A87] transition-all"
+                      key={entry.id}
+                      className="bg-white border border-[#EAE3D9] rounded-2xl p-5 flex flex-col justify-between shadow-xs hover:border-[#C59A87] transition-all"
                     >
                       <div>
-                        <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-start justify-between gap-3 mb-2">
                           <h3 className="font-medium text-base text-[#2A2421]">
-                            {item.clientName}
+                            {entry.clientName}
                           </h3>
-                          <span className="text-[11px] font-normal text-[#7A7571] bg-[#FAF7F2] px-2 py-0.5 rounded-md border border-[#EAE3D9]">
-                            {item.createdAt}
+                          <span className="text-[11px] font-medium bg-[#F4EFE6] text-[#2A2421] px-2 py-0.5 rounded-md">
+                            {entry.createdAt}
                           </span>
                         </div>
-                        <div className="space-y-1.5 text-xs text-[#5E544C] mb-4">
-                          <p className="flex items-center gap-1.5">
-                            <span className="text-[#7A7571]">Услуга:</span> {item.serviceName}
+                        <div className="space-y-1.5 text-xs sm:text-sm text-[#5E544C] mb-4">
+                          <p className="flex items-center gap-1.5 text-[#2A2421] font-medium">
+                            <Phone className="w-3.5 h-3.5 text-[#7A7571]" />
+                            <span>{entry.phone}</span>
                           </p>
-                          <p className="flex items-center gap-1.5">
-                            <span className="text-[#7A7571]">Желаемое время:</span> {item.desiredTime}
+                          <p>
+                            <span className="text-[#7A7571]">Услуга:</span> {entry.desiredService}
                           </p>
-                          <p className="flex items-center gap-1.5">
-                            <Phone className="w-3 h-3 text-[#C59A87]" />
-                            <span>{item.phone}</span>
+                          <p>
+                            <span className="text-[#7A7571]">Желаемое время:</span> {entry.desiredTimeRange}
                           </p>
-                          {item.notes && (
-                            <p className="text-xs text-[#7A7571] italic mt-1 bg-[#FAF7F2] p-2 rounded-xl border border-[#EAE3D9]/60">
-                              «{item.notes}»
-                            </p>
-                          )}
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between pt-3 border-t border-[#F0ECE4]">
                         <button
                           onClick={() => {
-                            // Quick transfer from waitlist to appointment modal
-                            setActiveTab('calendar');
+                            setCurrentView('schedule');
+                            alert(`Выберите подходящий свободный слот в расписании для ${entry.clientName}`);
                           }}
-                          className="h-8 px-3 rounded-xl bg-[#2A2421] hover:bg-[#C59A87] text-white text-xs font-medium transition-colors cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg bg-[#2A2421] hover:bg-[#C59A87] text-white text-xs font-medium transition-colors cursor-pointer"
                         >
                           Назначить окно
                         </button>
                         <button
-                          onClick={() => handleRemoveWaitlist(item.id)}
-                          className="p-1.5 text-[#7A7571] hover:text-[#C67A60] transition-colors cursor-pointer"
+                          onClick={() => handleRemoveWaitlist(entry.id)}
+                          className="p-1.5 text-[#7A7571] hover:text-[#5C2317] transition-colors cursor-pointer"
                           title="Удалить из листа"
                         >
-                          <Trash2 className="w-4 h-4 stroke-[1.8]" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -243,91 +251,100 @@ export default function DashboardPage() {
           onOpenChange={(open) => !open && setSelectedAppointmentId(null)}
         >
           <SheetContent side="bottom" className="h-[85vh] p-0 sm:max-w-none xl:hidden rounded-t-[32px] overflow-hidden bg-[#EFE6DA] border-none">
+            <SheetTitle className="sr-only">Детали записи</SheetTitle>
             <AppointmentDetailsSidebar
               appointment={selectedAppointment}
               onClose={() => setSelectedAppointmentId(null)}
               onStatusChange={handleStatusChange}
               onSaveNotes={handleSaveNotes}
-              className="w-full rounded-none shadow-none"
             />
           </SheetContent>
         </Sheet>
+      </div>
 
-        {/* Quick Add to Waitlist Modal */}
-        {isWaitlistModalOpen && (
-          <div className="fixed inset-0 z-50 bg-[#2A2421]/40 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-[#FAF7F2] border border-[#EAE3D9] rounded-[28px] max-w-md w-full p-6 shadow-xl">
-              <h3 className="font-serif text-lg font-medium text-[#2A2421] mb-4">
-                Добавить в лист ожидания
+      {/* Add Client to Waitlist Modal */}
+      {isAddWaitlistOpen && (
+        <div className="fixed inset-0 z-50 bg-[#2A2421]/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#FAF7F2] border border-[#EAE3D9] rounded-[28px] max-w-md w-full p-6 shadow-xl">
+            <div className="flex items-center justify-between pb-3 border-b border-[#EAE3D9] mb-4">
+              <h3 className="font-serif text-lg font-medium text-[#2A2421] flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[#C59A87]" />
+                <span>Добавить в лист ожидания</span>
               </h3>
-              <form onSubmit={handleAddWaitlist} className="space-y-3">
-                <div>
-                  <label className="block text-xs font-medium text-[#5E544C] mb-1">
-                    Имя клиента *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Виктория"
-                    value={wlName}
-                    onChange={(e) => setWlName(e.target.value)}
-                    className="w-full bg-white border border-[#EAE3D9] rounded-xl px-3 py-2 text-sm text-[#2A2421] placeholder-[#827771] focus:outline-none focus:border-[#C59A87]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-[#5E544C] mb-1">
-                    Телефон
-                  </label>
-                  <input
-                    type="tel"
-                    placeholder="+7 (999) 000-00-00"
-                    value={wlPhone}
-                    onChange={(e) => setWlPhone(e.target.value)}
-                    className="w-full bg-white border border-[#EAE3D9] rounded-xl px-3 py-2 text-sm text-[#2A2421] placeholder-[#827771] focus:outline-none focus:border-[#C59A87]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-[#5E544C] mb-1">
-                    Услуга
-                  </label>
-                  <input
-                    type="text"
-                    value={wlService}
-                    onChange={(e) => setWlService(e.target.value)}
-                    className="w-full bg-white border border-[#EAE3D9] rounded-xl px-3 py-2 text-sm text-[#2A2421] focus:outline-none focus:border-[#C59A87]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-[#5E544C] mb-1">
-                    Желаемое время / окно
-                  </label>
-                  <input
-                    type="text"
-                    value={wlTime}
-                    onChange={(e) => setWlTime(e.target.value)}
-                    className="w-full bg-white border border-[#EAE3D9] rounded-xl px-3 py-2 text-sm text-[#2A2421] focus:outline-none focus:border-[#C59A87]"
-                  />
-                </div>
-                <div className="flex items-center justify-end gap-2 pt-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsWaitlistModalOpen(false)}
-                    className="px-4 py-2 rounded-xl text-xs font-medium text-[#5E544C] hover:text-[#2A2421] cursor-pointer"
-                  >
-                    Отмена
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 rounded-xl bg-[#2A2421] hover:bg-[#C59A87] text-white text-xs font-medium transition-colors cursor-pointer shadow-xs"
-                  >
-                    Добавить
-                  </button>
-                </div>
-              </form>
+              <button
+                onClick={() => setIsAddWaitlistOpen(false)}
+                className="text-[#7A7571] hover:text-[#2A2421] text-xs font-medium cursor-pointer"
+              >
+                Закрыть
+              </button>
             </div>
+
+            <form onSubmit={handleAddWaitlist} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-medium text-[#5E544C] mb-1">
+                  Имя клиента *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Мария Иванова"
+                  value={newWaitName}
+                  onChange={(e) => setNewWaitName(e.target.value)}
+                  className="w-full bg-white border border-[#EAE3D9] rounded-xl px-3 py-2 text-sm text-[#2A2421] placeholder-[#827771] focus:outline-none focus:border-[#C59A87]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[#5E544C] mb-1">
+                  Телефон *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="+7 (999) 123-45-67"
+                  value={newWaitPhone}
+                  onChange={(e) => setNewWaitPhone(e.target.value)}
+                  className="w-full bg-white border border-[#EAE3D9] rounded-xl px-3 py-2 text-sm text-[#2A2421] placeholder-[#827771] focus:outline-none focus:border-[#C59A87]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[#5E544C] mb-1">
+                  Желаемая услуга
+                </label>
+                <input
+                  type="text"
+                  value={newWaitService}
+                  onChange={(e) => setNewWaitService(e.target.value)}
+                  className="w-full bg-white border border-[#EAE3D9] rounded-xl px-3 py-2 text-sm text-[#2A2421] focus:outline-none focus:border-[#C59A87]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-[#5E544C] mb-1">
+                  Желаемое время / дни
+                </label>
+                <input
+                  type="text"
+                  value={newWaitTime}
+                  onChange={(e) => setNewWaitTime(e.target.value)}
+                  placeholder="Любое время в пятницу или субботу"
+                  className="w-full bg-white border border-[#EAE3D9] rounded-xl px-3 py-2 text-sm text-[#2A2421] focus:outline-none focus:border-[#C59A87]"
+                />
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded-xl bg-[#2A2421] hover:bg-[#C59A87] text-white text-sm font-medium transition-colors shadow-xs cursor-pointer"
+                >
+                  Внести в лист ожидания
+                </button>
+              </div>
+            </form>
           </div>
-        )}
-      </main>
+        </div>
+      )}
     </div>
   );
 }
