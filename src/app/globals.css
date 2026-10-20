@@ -45,7 +45,7 @@
   --color-background: var(--color-base);
   --color-foreground: var(--color-main);
 
-  --font-sans: var(--font-league-spartan);
+  --font-sans: var(--font-sans);
   --font-serif: var(--font-playfair-display);
   --font-heading: var(--font-playfair-display);
   --color-sidebar-ring: var(--sidebar-ring);
