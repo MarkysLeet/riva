@@ -257,21 +257,22 @@ export function AuthModal({ isOpen, onClose, initialTab = "login" }: AuthModalPr
                   transition={{ duration: 0.2 }}
                 >
                   {/* Tabs */}
-                  <div className="flex gap-4 border-b border-[#EFEAE0] mb-6">
+                  <div className="flex gap-1 bg-[#F4EFE6] p-1.5 rounded-2xl border border-[#EFEAE0] mb-6">
                     <button
-                      className={`pb-3 text-sm sm:text-base font-semibold transition-colors relative ${
-                        tab === "login" ? "text-[#2A2421]" : "text-[#827771] hover:text-[#2A2421]"
+                      className={`flex-1 py-2.5 sm:py-3 text-sm font-semibold rounded-xl transition-all text-center ${
+                        tab === "login"
+                          ? "bg-white text-[#2A2421] shadow-sm"
+                          : "font-medium text-[#5A504B] hover:text-[#2A2421]"
                       }`}
                       onClick={() => setTab("login")}
                     >
                       Войти
-                      {tab === "login" && (
-                        <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#C59A87]" />
-                      )}
                     </button>
                     <button
-                      className={`pb-3 text-sm sm:text-base font-semibold transition-colors relative ${
-                        tab === "register" ? "text-[#2A2421]" : "text-[#827771] hover:text-[#2A2421]"
+                      className={`flex-1 py-2.5 sm:py-3 text-sm font-semibold rounded-xl transition-all text-center ${
+                        tab === "register"
+                          ? "bg-white text-[#2A2421] shadow-sm"
+                          : "font-medium text-[#5A504B] hover:text-[#2A2421]"
                       }`}
                       onClick={() => {
                         setTab("register");
@@ -279,9 +280,6 @@ export function AuthModal({ isOpen, onClose, initialTab = "login" }: AuthModalPr
                       }}
                     >
                       Регистрация
-                      {tab === "register" && (
-                        <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#C59A87]" />
-                      )}
                     </button>
                   </div>
 
