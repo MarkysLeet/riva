@@ -267,7 +267,7 @@ export default function Home() {
                   {isSelected && <X className="w-3 h-3" />}
                 </button>
               );
-            })};
+            })}
           </div>
           <Sheet>
             <SheetTrigger asChild>
