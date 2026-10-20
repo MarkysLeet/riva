@@ -23,14 +23,12 @@ export function ScheduleView({
     (_, i) => timelineStartHour + i
   );
 
-  const pixelsPerHour = 60;
-
   return (
     <div className={cn("flex flex-col h-full bg-[#FAF7F2] flex-1 overflow-hidden select-none", className)}>
       {/* Header Toolbar */}
-      <header className="flex-none px-8 py-6 flex items-center justify-between">
+      <header className="flex-none px-4 sm:px-8 py-4 sm:py-6 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <h1 className="text-2xl font-normal text-[#2A2420] tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-normal text-[#2A2420] tracking-tight">
             Расписание
           </h1>
           <button
@@ -38,38 +36,38 @@ export function ScheduleView({
             className="p-1 hover:opacity-75 transition-opacity text-[#2A2420] cursor-pointer"
             aria-label="Редактировать расписание"
           >
-            <Pencil className="w-5 h-5 stroke-[1.8]" />
+            <Pencil className="w-4 h-4 sm:w-5 sm:h-5 stroke-[1.8]" />
           </button>
         </div>
 
         {/* Date Controls: < Сегодня > */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <button
             type="button"
-            className="w-9 h-9 rounded-xl bg-[#EDE5D8] hover:bg-[#E2D8C9] text-[#2A2420] flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#EDE5D8] hover:bg-[#E2D8C9] text-[#2A2420] flex items-center justify-center transition-colors cursor-pointer"
             aria-label="Предыдущий день"
           >
-            <ChevronLeft className="w-5 h-5 stroke-[1.8]" />
+            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 stroke-[1.8]" />
           </button>
           <button
             type="button"
-            className="px-5 h-9 rounded-xl bg-[#EDE5D8] hover:bg-[#E2D8C9] text-[15px] font-normal text-[#2A2420] transition-colors cursor-pointer"
+            className="px-3.5 sm:px-5 h-8 sm:h-9 rounded-xl bg-[#EDE5D8] hover:bg-[#E2D8C9] text-xs sm:text-[15px] font-normal text-[#2A2420] transition-colors cursor-pointer"
           >
             Сегодня
           </button>
           <button
             type="button"
-            className="w-9 h-9 rounded-xl bg-[#EDE5D8] hover:bg-[#E2D8C9] text-[#2A2420] flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#EDE5D8] hover:bg-[#E2D8C9] text-[#2A2420] flex items-center justify-center transition-colors cursor-pointer"
             aria-label="Следующий день"
           >
-            <ChevronRight className="w-5 h-5 stroke-[1.8]" />
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 stroke-[1.8]" />
           </button>
         </div>
       </header>
 
       {/* Timeline Scroll Area */}
-      <div className="flex-1 overflow-y-auto px-8 pb-12">
-        <div className="relative min-w-[500px]">
+      <div className="flex-1 overflow-y-auto overflow-x-auto px-4 sm:px-8 pb-12">
+        <div className="relative min-w-[480px]">
           {/* Vertical left accent line next to active morning schedule */}
           <div className="absolute left-[54px] top-[10px] w-1 h-[100px] bg-[#B35E46] rounded-full z-10" />
 

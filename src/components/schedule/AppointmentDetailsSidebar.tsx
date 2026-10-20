@@ -19,7 +19,7 @@ export function AppointmentDetailsSidebar({
     return (
       <aside
         className={cn(
-          "w-[450px] bg-[#EFE6DA] rounded-l-[36px] p-8 h-full flex flex-col items-center justify-center text-center select-none shrink-0 shadow-[-8px_0_24px_rgba(42,36,33,0.03)]",
+          "w-full xl:w-[450px] bg-[#EFE6DA] rounded-l-[36px] p-8 h-full flex flex-col items-center justify-center text-center select-none shrink-0 shadow-[-8px_0_24px_rgba(42,36,33,0.03)]",
           className
         )}
       >
@@ -42,13 +42,13 @@ export function AppointmentDetailsSidebar({
   return (
     <aside
       className={cn(
-        "w-[450px] bg-[#EFE6DA] rounded-l-[36px] p-7 h-full flex flex-col justify-between overflow-y-auto select-none shrink-0 shadow-[-8px_0_24px_rgba(42,36,33,0.03)]",
+        "w-full xl:w-[450px] bg-[#EFE6DA] rounded-t-[32px] xl:rounded-t-none xl:rounded-l-[36px] p-5 sm:p-7 h-full flex flex-col justify-between overflow-y-auto select-none shrink-0 shadow-[-8px_0_24px_rgba(42,36,33,0.03)]",
         className
       )}
     >
       <div>
         {/* Top Header Row */}
-        <div className="flex items-center justify-between mb-7">
+        <div className="flex items-center justify-between mb-6">
           <button
             type="button"
             onClick={onClose}
@@ -62,14 +62,14 @@ export function AppointmentDetailsSidebar({
             <img
               src={client.avatarUrl || "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80"}
               alt={client.name}
-              className="w-12 h-12 rounded-full object-cover shadow-sm border border-[#E0D5C7]"
+              className="w-11 h-11 sm:w-12 sm:h-12 rounded-full object-cover shadow-sm border border-[#E0D5C7]"
             />
-            <h2 className="text-[20px] font-normal text-[#2A2420] tracking-tight">
+            <h2 className="text-[18px] sm:text-[20px] font-normal text-[#2A2420] tracking-tight">
               {client.name}
             </h2>
             <div
               className={cn(
-                "flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[12px] font-normal ml-1",
+                "flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] sm:text-[12px] font-normal ml-1",
                 isConfirmed
                   ? "bg-[#BFE0CB] text-[#193C24]"
                   : "bg-[#CFD4DA] text-[#2C333D]"
@@ -94,46 +94,46 @@ export function AppointmentDetailsSidebar({
         </div>
 
         {/* Loyalty & Rating Metrics (3 circular pills) */}
-        <div className="grid grid-cols-3 gap-3 mb-6 text-center">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6 text-center">
           <div>
-            <div className="text-[14px] font-normal text-[#2A2420] mb-2">
+            <div className="text-[13px] sm:text-[14px] font-normal text-[#2A2420] mb-1.5">
               Лояльность
             </div>
-            <div className="w-[58px] h-[58px] rounded-full bg-[#CCE7D5] flex items-center justify-center text-[15px] font-normal text-[#1E3B27] mx-auto shadow-sm">
+            <div className="w-[52px] h-[52px] sm:w-[58px] sm:h-[58px] rounded-full bg-[#CCE7D5] flex items-center justify-center text-[14px] sm:text-[15px] font-normal text-[#1E3B27] mx-auto shadow-sm">
               {client.metrics.loyaltyRate}%
             </div>
           </div>
 
           <div>
-            <div className="text-[14px] font-normal text-[#2A2420] mb-2">
+            <div className="text-[13px] sm:text-[14px] font-normal text-[#2A2420] mb-1.5">
               Посещаемость
             </div>
-            <div className="w-[58px] h-[58px] rounded-full bg-[#CCE7D5] flex items-center justify-center text-[15px] font-normal text-[#1E3B27] mx-auto shadow-sm">
+            <div className="w-[52px] h-[52px] sm:w-[58px] sm:h-[58px] rounded-full bg-[#CCE7D5] flex items-center justify-center text-[14px] sm:text-[15px] font-normal text-[#1E3B27] mx-auto shadow-sm">
               {client.metrics.attendanceRate}%
             </div>
           </div>
 
           <div>
-            <div className="text-[14px] font-normal text-[#2A2420] mb-2">
+            <div className="text-[13px] sm:text-[14px] font-normal text-[#2A2420] mb-1.5">
               Рейтинг
             </div>
-            <div className="w-[58px] h-[58px] rounded-full bg-[#CCE7D5] flex items-center justify-center text-[15px] font-normal text-[#1E3B27] mx-auto shadow-sm">
+            <div className="w-[52px] h-[52px] sm:w-[58px] sm:h-[58px] rounded-full bg-[#CCE7D5] flex items-center justify-center text-[14px] sm:text-[15px] font-normal text-[#1E3B27] mx-auto shadow-sm">
               {client.metrics.rating}%
             </div>
           </div>
         </div>
 
         {/* Content Island Cards */}
-        <div className="space-y-4">
+        <div className="space-y-3.5 sm:space-y-4">
           {/* 1. Данные записи */}
-          <div className="bg-white/95 rounded-[26px] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-white">
-            <div className="flex items-center gap-2 mb-2.5">
-              <h3 className="text-[15px] font-normal text-[#2A2420]">
+          <div className="bg-white/95 rounded-[22px] sm:rounded-[26px] p-4 sm:p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-white">
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="text-[14px] sm:text-[15px] font-normal text-[#2A2420]">
                 Данные записи
               </h3>
               <Pencil className="w-3.5 h-3.5 text-[#2A2420] stroke-[1.8] cursor-pointer hover:opacity-75 transition-opacity" />
             </div>
-            <div className="space-y-1 text-[14px] font-normal text-[#2A2420]">
+            <div className="space-y-1 text-[13px] sm:text-[14px] font-normal text-[#2A2420]">
               <p>Услуга: {appointment.serviceName}</p>
               <p>Мастер: {appointment.specialistName}</p>
               <p>Депозит: {appointment.depositAmount} {appointment.depositCurrency || 'TL'}</p>
@@ -141,12 +141,12 @@ export function AppointmentDetailsSidebar({
           </div>
 
           {/* 2. История посещений */}
-          <div className="bg-white/95 rounded-[26px] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-white">
-            <h3 className="text-[15px] font-normal text-[#2A2420] mb-2.5">
+          <div className="bg-white/95 rounded-[22px] sm:rounded-[26px] p-4 sm:p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-white">
+            <h3 className="text-[14px] sm:text-[15px] font-normal text-[#2A2420] mb-2">
               История посещений
             </h3>
             {appointment.pastVisits && appointment.pastVisits.length > 0 ? (
-              <div className="space-y-1.5 text-[14px] font-normal text-[#2A2420]">
+              <div className="space-y-1.5 text-[13px] sm:text-[14px] font-normal text-[#2A2420]">
                 {appointment.pastVisits.map((visit) => (
                   <p key={visit.id}>
                     {visit.date} - {visit.serviceName}
@@ -154,38 +154,38 @@ export function AppointmentDetailsSidebar({
                 ))}
               </div>
             ) : (
-              <p className="text-[14px] text-[#7D7065] italic">
+              <p className="text-[13px] sm:text-[14px] text-[#7D7065] italic">
                 Нет предыдущих записей
               </p>
             )}
           </div>
 
           {/* 3. Внутренние заметки */}
-          <div className="bg-white/95 rounded-[26px] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-white">
-            <div className="flex items-center gap-2 mb-2.5">
-              <h3 className="text-[15px] font-normal text-[#2A2420]">
+          <div className="bg-white/95 rounded-[22px] sm:rounded-[26px] p-4 sm:p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-white">
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="text-[14px] sm:text-[15px] font-normal text-[#2A2420]">
                 Внутренние заметки
               </h3>
               <Pencil className="w-3.5 h-3.5 text-[#2A2420] stroke-[1.8] cursor-pointer hover:opacity-75 transition-opacity" />
             </div>
-            <p className="text-[14px] font-normal text-[#2A2420] leading-relaxed">
+            <p className="text-[13px] sm:text-[14px] font-normal text-[#2A2420] leading-relaxed">
               {client.notes || "Заметок пока нет"}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Bottom Action Buttons */}
-      <div className="grid grid-cols-2 gap-4 mt-6 pt-2">
+      {/* Bottom Action Buttons (with safe padding to prevent bottom edge overlap) */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-6 pt-2 pb-8 xl:pb-0 shrink-0">
         <button
           type="button"
-          className="bg-[#BFE1CE] hover:bg-[#B3D9C3] text-[#1E3E28] font-normal text-[16px] py-3.5 rounded-[20px] transition-all shadow-[0_2px_8px_rgba(0,0,0,0.03)] active:scale-[0.98] cursor-pointer flex items-center justify-center"
+          className="bg-[#BFE1CE] hover:bg-[#B3D9C3] text-[#1E3E28] font-normal text-sm sm:text-[16px] py-3.5 rounded-[18px] sm:rounded-[20px] transition-all shadow-[0_2px_8px_rgba(0,0,0,0.03)] active:scale-[0.98] cursor-pointer flex items-center justify-center px-2 text-center"
         >
           Начать сеанс
         </button>
         <button
           type="button"
-          className="bg-[#C67A60] hover:bg-[#BD7157] text-white font-normal text-[16px] py-3.5 rounded-[20px] transition-all shadow-[0_2px_8px_rgba(0,0,0,0.03)] active:scale-[0.98] cursor-pointer flex items-center justify-center"
+          className="bg-[#C67A60] hover:bg-[#BD7157] text-white font-normal text-sm sm:text-[16px] py-3.5 rounded-[18px] sm:rounded-[20px] transition-all shadow-[0_2px_8px_rgba(0,0,0,0.03)] active:scale-[0.98] cursor-pointer flex items-center justify-center px-2 text-center"
         >
           Отменить сеанс
         </button>
