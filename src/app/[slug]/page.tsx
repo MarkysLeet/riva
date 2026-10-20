@@ -1,4 +1,6 @@
 import React from 'react';
+
+export const instant = false;
 import Link from 'next/link';
 import { ArrowLeft, Star, MapPin, Clock, Shield } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
@@ -92,7 +94,7 @@ export default async function SalonPublicPage({ params }: PageProps) {
           {/* Back to Catalog Button */}
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-[#EAE3D9] hover:bg-[#F4EFE6] hover:border-[#C59A87] text-sm font-medium text-[#2A2421] transition-all shadow-xs group"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-[#EAE3D9] hover:bg-[#F4EFE6] hover:border-[#C59A87] text-sm font-medium text-[#2A2421] transition-all shadow-xs group cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4 text-[#7A7571] group-hover:text-[#2A2421] transition-colors" />
             <span>В каталог</span>
