@@ -12,6 +12,36 @@
   --color-accent-green: #C3D5C5;
   --color-accent-terra: #C59A87;
 
+  /* Riva Design System Colors */
+  --color-riva-canvas: #FAF6F0;
+  --color-riva-surface: #FFFFFF;
+  --color-riva-sidebar: #F5EFE6;
+  --color-riva-border: #EAE3D9;
+  --color-riva-borderLight: #F0ECE4;
+
+  --color-riva-text-primary: #242220;
+  --color-riva-text-secondary: #7A7571;
+  --color-riva-text-muted: #A6A09B;
+
+  --color-riva-status-confirmed: #D2E8D8;
+  --color-riva-status-confirmedText: #1E4631;
+  --color-riva-status-confirmedBorder: #C1DDC9;
+
+  --color-riva-status-pending: #E8EAED;
+  --color-riva-status-pendingText: #474D57;
+  --color-riva-status-pendingBorder: #D5D8DC;
+
+  --color-riva-status-dangerBg: #FDE8E4;
+  --color-riva-status-dangerText: #9C382A;
+  --color-riva-status-dangerAction: #D96B5B;
+
+  --color-riva-status-actionPrimary: #3A5A44;
+  --color-riva-status-actionHover: #2E4836;
+
+  /* Shadows */
+  --shadow-riva-card: 0 4px 20px -2px rgba(36, 34, 32, 0.04);
+  --shadow-riva-elevated: 0 12px 32px -4px rgba(36, 34, 32, 0.07);
+
   --color-background: var(--color-base);
   --color-foreground: var(--color-main);
 
@@ -51,9 +81,9 @@
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
+  --radius-4xl: 32px;
 }
 
 :root {

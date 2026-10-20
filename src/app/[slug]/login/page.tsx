@@ -22,7 +22,7 @@ export default async function LoginPage({
   } = await supabase.auth.getUser();
 
   if (user) {
-    return redirect(`/${slug}/admin`);
+    return redirect(`/dashboard`);
   }
 
   const signIn = async (formData: FormData) => {
@@ -31,12 +31,13 @@ export default async function LoginPage({
     const email = formData.get("email") as string;
     const supabase = await createClient();
 
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         // set this to false if you do not want the user to be automatically signed up
         shouldCreateUser: true,
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm?next=/${slug}/admin`,
+        emailRedirectTo: `${origin}/auth/confirm?next=/dashboard`,
       },
     });
 
