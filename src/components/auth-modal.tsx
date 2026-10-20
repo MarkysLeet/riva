@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Scissors, Store, X, CheckCircle, Check, Loader2 } from "lucide-react";
+import { Sparkles, Store, X, CheckCircle, Check, Loader2 } from "lucide-react";
 import { sendOtp, verifyOtp, PasswordlessMetadata } from "@/app/actions/auth";
 
 type Role = "client" | "master" | "salon" | null;
@@ -11,6 +11,7 @@ type Role = "client" | "master" | "salon" | null;
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialTab?: "login" | "register";
 }
 
 const cyrillicToLatinMap: Record<string, string> = {
@@ -32,8 +33,9 @@ function transliterate(text: string): string {
     .replace(/^-|-$/g, "");
 }
 
-export function AuthModal({ isOpen, onClose }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, initialTab = "login" }: AuthModalProps) {
   const router = useRouter();
+  const [tab, setTab] = useState<"login" | "register">(initialTab);
   const [role, setRole] = useState<Role>(null);
   const [step, setStep] = useState<"form" | "code">("form");
 
@@ -57,6 +59,25 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   // 6-digit Code State
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (cooldown > 0 && step === "code") {
+      timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [cooldown, step]);
+
+  // Handle tab state sync on open using a layout effect or similar
+  // To satisfy Next.js' strict ESLint rule, we can derive it during render instead of using useEffect
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
+    if (isOpen) {
+      setTab(initialTab);
+    }
+  }
 
   // Reset state when closed
   useEffect(() => {
@@ -90,18 +111,6 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setErrorMsg("");
   };
 
-  const handleClientInterestToggle = (interest: string) => {
-    setClientInterests((prev) =>
-      prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest]
-    );
-  };
-
-  const handleMasterSpecToggle = (spec: string) => {
-    setMasterSpecializations((prev) =>
-      prev.includes(spec) ? prev.filter((i) => i !== spec) : [...prev, spec]
-    );
-  };
-
   const generatedSlug = role === "master" ? transliterate(masterName) : role === "salon" ? transliterate(salonName) : "";
 
   // 1. Submit Form & Send 6-digit OTP
@@ -115,20 +124,23 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setIsLoading(true);
 
     try {
-      const metadata: PasswordlessMetadata = {
-        role: (role as "client" | "master" | "salon") || "client",
-        name: role === "master" ? masterName : role === "salon" ? salonName : (clientName || undefined),
-        slug: generatedSlug || undefined,
-        specializations: role === "master" ? masterSpecializations : undefined,
-        interests: role === "client" ? clientInterests : undefined,
-        teamSize: role === "salon" ? (teamSize || undefined) : undefined,
-      };
+      const metadata: PasswordlessMetadata = tab === "login"
+        ? { role: "client" } // Backend verifyOtp sets proper role anyway, but we need some default
+        : {
+          role: (role as "client" | "master" | "salon") || "client",
+          name: role === "master" ? masterName : role === "salon" ? salonName : (clientName || undefined),
+          slug: generatedSlug || undefined,
+          specializations: role === "master" ? masterSpecializations : undefined,
+          interests: role === "client" ? clientInterests : undefined,
+          teamSize: role === "salon" ? (teamSize || undefined) : undefined,
+        };
 
       const res = await sendOtp(email, metadata);
       if (res.error) {
         setErrorMsg(res.error);
       } else {
         setStep("code");
+        setCooldown(60);
       }
     } catch {
       setErrorMsg("Не удалось отправить код. Попробуйте еще раз.");
@@ -137,65 +149,55 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     }
   };
 
-  // 2. Verify 6-digit OTP
-  const handleVerify = async (tokenToVerify?: string) => {
-    const token = tokenToVerify || code.join("");
-    if (token.length !== 6) {
-      setErrorMsg("Введите 6-значный код");
-      return;
-    }
-    setIsLoading(true);
-    setErrorMsg("");
-
-    try {
-      const res = await verifyOtp(email, token);
-      if (res.error) {
-        setErrorMsg(res.error);
-        setIsLoading(false);
-      } else {
-        setIsLoading(false);
-        onClose();
-        router.push("/dashboard");
-      }
-    } catch {
-      setIsLoading(false);
-      setErrorMsg("Ошибка при проверке кода. Попробуйте снова.");
-    }
-  };
-
-  // 3. Code Handlers
+  // 2. Handle 6-digit Code Input
   const handleCodeChange = (index: number, value: string) => {
-    const digit = value.replace(/\D/g, "").slice(-1);
+    if (!/^[0-9]*$/.test(value)) return;
+
     const newCode = [...code];
-    newCode[index] = digit;
+    newCode[index] = value;
     setCode(newCode);
 
-    if (digit && index < 5) {
+    if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
 
-    const fullCode = newCode.join("");
-    if (fullCode.length === 6 && !newCode.includes("")) {
-      handleVerify(fullCode);
+    if (value && index === 5 && newCode.every((d) => d !== "")) {
+      handleVerify(newCode.join(""));
     }
   };
 
   const handleCodeKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace") {
-      if (code[index] !== "") {
-        const newCode = [...code];
-        newCode[index] = "";
-        setCode(newCode);
-      } else if (index > 0) {
-        const newCode = [...code];
-        newCode[index - 1] = "";
-        setCode(newCode);
-        inputRefs.current[index - 1]?.focus();
-      }
-    } else if (e.key === "ArrowLeft" && index > 0) {
+    if (e.key === "Backspace" && !code[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
-    } else if (e.key === "ArrowRight" && index < 5) {
-      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleVerify = async (fullCode?: string) => {
+    const codeToVerify = fullCode || code.join("");
+    if (codeToVerify.length !== 6) {
+      setErrorMsg("Введите 6-значный код");
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMsg("");
+
+    try {
+      const res = await verifyOtp(email, codeToVerify);
+      if (res.error) {
+        setErrorMsg(res.error);
+      } else {
+        onClose();
+        if (res.role === "master" || res.role === "salon") {
+          router.push(res.slug ? `/${res.slug}/admin` : "/dashboard");
+        } else {
+          router.push("/profile");
+        }
+      }
+    } catch {
+      setErrorMsg("Ошибка при проверке кода. Попробуйте еще раз.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -254,39 +256,41 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.2 }}
                 >
+                  {/* Tabs */}
+                  <div className="flex gap-1 bg-[#F4EFE6] p-1.5 rounded-2xl border border-[#EFEAE0] mb-6">
+                    <button
+                      className={`flex-1 py-2.5 sm:py-3 text-sm font-semibold rounded-xl transition-all text-center ${
+                        tab === "login"
+                          ? "bg-white text-[#2A2421] shadow-sm"
+                          : "font-medium text-[#5A504B] hover:text-[#2A2421]"
+                      }`}
+                      onClick={() => setTab("login")}
+                    >
+                      Войти
+                    </button>
+                    <button
+                      className={`flex-1 py-2.5 sm:py-3 text-sm font-semibold rounded-xl transition-all text-center ${
+                        tab === "register"
+                          ? "bg-white text-[#2A2421] shadow-sm"
+                          : "font-medium text-[#5A504B] hover:text-[#2A2421]"
+                      }`}
+                      onClick={() => {
+                        setTab("register");
+                        if (!role) setRole("client");
+                      }}
+                    >
+                      Регистрация
+                    </button>
+                  </div>
+
                   {/* Header */}
                   <div className="mb-5 sm:mb-6 pr-8">
                     <h2 className="text-xl sm:text-2xl font-semibold text-[#2A2421] mb-1">
-                      Добро пожаловать в Riva
+                      {tab === "login" ? "С возвращением" : "Добро пожаловать в Riva"}
                     </h2>
                     <p className="text-[#827771] text-xs sm:text-sm">
-                      Выберите формат аккаунта, чтобы продолжить
+                      {tab === "login" ? "Введите ваш email для входа в систему" : "Выберите формат аккаунта, чтобы продолжить"}
                     </p>
-                  </div>
-
-                  {/* Role Selection Grid */}
-                  <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-5 sm:mb-6">
-                    <RoleCard
-                      icon={<Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mb-1.5 sm:mb-2" />}
-                      title="Для записи"
-                      label="Клиент"
-                      isActive={role === "client"}
-                      onClick={() => handleRoleSelect("client")}
-                    />
-                    <RoleCard
-                      icon={<Scissors className="w-4 h-4 sm:w-5 sm:h-5 mb-1.5 sm:mb-2" />}
-                      title="Частная практика"
-                      label="Мастер"
-                      isActive={role === "master"}
-                      onClick={() => handleRoleSelect("master")}
-                    />
-                    <RoleCard
-                      icon={<Store className="w-4 h-4 sm:w-5 sm:h-5 mb-1.5 sm:mb-2" />}
-                      title="Команда и CRM"
-                      label="Салон"
-                      isActive={role === "salon"}
-                      onClick={() => handleRoleSelect("salon")}
-                    />
                   </div>
 
                   {errorMsg && (
@@ -295,203 +299,241 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     </div>
                   )}
 
-                  {/* Dynamic Form Content */}
-                  <AnimatePresence mode="sync">
-                    {role && (
-                      <motion.div
-                        layout
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
+                  {tab === "login" ? (
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                      <input
+                        type="email"
+                        placeholder="Email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full bg-[#F4EFE6] border border-[#EFEAE0] hover:border-[#D9D1C5] focus:border-[#C59A87] focus:ring-1 focus:ring-[#C59A87] focus:ring-inset focus:outline-none rounded-xl px-4 py-3 text-sm text-[#2A2421] placeholder:text-[#827771] transition-colors"
+                        required
+                      />
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="mt-2 w-full bg-[#C59A87] text-white py-3 rounded-full font-medium transition-colors hover:bg-[#b08876] disabled:opacity-50 flex justify-center items-center gap-2 text-sm"
                       >
-                        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                          {role === "client" && (
-                            <>
-                              <div className="flex flex-col gap-3">
-                                <input
-                                  type="text"
-                                  placeholder="Ваше имя (необязательно)"
-                                  value={clientName}
-                                  onChange={(e) => setClientName(e.target.value)}
-                                  className="w-full bg-[#F4EFE6] border border-[#EFEAE0] hover:border-[#D9D1C5] focus:border-[#C59A87] focus:ring-1 focus:ring-[#C59A87] focus:ring-inset focus:outline-none rounded-xl px-4 py-3 text-sm text-[#2A2421] placeholder:text-[#827771] transition-colors"
-                                />
-                                <input
-                                  type="email"
-                                  placeholder="Email"
-                                  value={email}
-                                  onChange={(e) => setEmail(e.target.value)}
-                                  className="w-full bg-[#F4EFE6] border border-[#EFEAE0] hover:border-[#D9D1C5] focus:border-[#C59A87] focus:ring-1 focus:ring-[#C59A87] focus:ring-inset focus:outline-none rounded-xl px-4 py-3 text-sm text-[#2A2421] placeholder:text-[#827771] transition-colors"
-                                  required
-                                />
-                              </div>
-                              <div>
-                                <p className="text-[#827771] text-xs sm:text-sm mb-2">Что вас интересует?</p>
-                                <div className="flex flex-wrap gap-2">
-                                  {["Маникюр", "Педикюр", "Брови", "Волосы", "Макияж", "Косметология"].map((interest) => (
-                                    <Pill
-                                      key={interest}
-                                      label={interest}
-                                      isActive={clientInterests.includes(interest)}
-                                      onClick={() => handleClientInterestToggle(interest)}
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                              <button
-                                type="submit"
-                                disabled={isLoading}
-                                className="mt-2 w-full bg-[#C59A87] text-white py-3 rounded-full font-medium transition-colors hover:bg-[#b08876] disabled:opacity-50 flex justify-center items-center gap-2 text-sm"
-                              >
-                                {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                                Получить код доступа
-                              </button>
-                            </>
-                          )}
+                        {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                        Получить код
+                      </button>
+                    </form>
+                  ) : (
+                    <>
+                      {/* Role Selection Options */}
+                      <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-5 sm:mb-6">
+                        <RoleCard
+                          icon={<Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mb-1.5 sm:mb-2" />}
+                          title="Для записи на услуги"
+                          label="Клиент"
+                          isActive={role === "client"}
+                          onClick={() => handleRoleSelect("client")}
+                        />
+                        <RoleCard
+                          icon={<Store className="w-4 h-4 sm:w-5 sm:h-5 mb-1.5 sm:mb-2" />}
+                          title="Для мастеров и салонов"
+                          label="Бизнес"
+                          isActive={role === "master" || role === "salon"}
+                          onClick={() => handleRoleSelect("master")}
+                        />
+                      </div>
 
-                          {role === "master" && (
-                            <>
-                              <div>
-                                <input
-                                  type="text"
-                                  placeholder="Имя или никнейм"
-                                  value={masterName}
-                                  onChange={(e) => setMasterName(e.target.value)}
-                                  className="w-full bg-[#F4EFE6] border border-[#EFEAE0] hover:border-[#D9D1C5] focus:border-[#C59A87] focus:ring-1 focus:ring-[#C59A87] focus:ring-inset focus:outline-none rounded-xl px-4 py-3 text-sm text-[#2A2421] placeholder:text-[#827771] mb-2 transition-colors"
-                                  required
-                                />
-                                <AnimatePresence>
-                                  {masterName && (
-                                    <motion.div
-                                      initial={{ opacity: 0, height: 0 }}
-                                      animate={{ opacity: 1, height: "auto" }}
-                                      exit={{ opacity: 0, height: 0 }}
-                                      className="flex items-center gap-2 overflow-hidden"
-                                    >
-                                      <div className="text-xs sm:text-sm text-[#827771] bg-[#F4EFE6]/50 px-3 py-1.5 rounded-lg flex items-center">
-                                        riva.com/<span className="text-[#2A2421] font-medium">{generatedSlug}</span>
-                                      </div>
-                                      <div className="flex items-center gap-1 text-[#4B7355] text-xs font-medium bg-[#C3D5C5]/30 px-2 py-1.5 rounded-lg">
-                                        <Check className="w-3 h-3" />
-                                        Доступно
-                                      </div>
-                                    </motion.div>
-                                  )}
-                                </AnimatePresence>
-                              </div>
-
-                              <div>
-                                <p className="text-[#827771] text-xs sm:text-sm mb-2">Специализация</p>
-                                <div className="flex flex-wrap gap-2">
-                                  {["Ногтевой сервис", "Брови/Ресницы", "Волосы", "Визаж"].map((spec) => (
-                                    <Pill
-                                      key={spec}
-                                      label={spec}
-                                      isActive={masterSpecializations.includes(spec)}
-                                      onClick={() => handleMasterSpecToggle(spec)}
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-
-                              <input
-                                type="email"
-                                placeholder="Рабочий Email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-[#F4EFE6] border border-[#EFEAE0] hover:border-[#D9D1C5] focus:border-[#C59A87] focus:ring-1 focus:ring-[#C59A87] focus:ring-inset focus:outline-none rounded-xl px-4 py-3 text-sm text-[#2A2421] placeholder:text-[#827771] transition-colors"
-                                required
-                              />
-
-                              <div className="mt-2 text-center">
+                      {/* Dynamic Form Content */}
+                      <AnimatePresence mode="sync">
+                        {role && (
+                          <motion.div
+                            layout
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                          >
+                            {(role === "master" || role === "salon") && (
+                              <div className="flex gap-2 mb-4 bg-[#F4EFE6] p-1 rounded-xl border border-[#EFEAE0]">
                                 <button
-                                  type="submit"
-                                  disabled={isLoading}
-                                  className="w-full bg-[#C59A87] text-white py-3 rounded-full font-medium transition-colors hover:bg-[#b08876] disabled:opacity-50 flex justify-center items-center gap-2 text-sm"
+                                  type="button"
+                                  onClick={() => setRole("master")}
+                                  className={`flex-1 py-2 text-xs font-medium rounded-lg transition-colors ${
+                                    role === "master"
+                                      ? "bg-white text-[#2A2421] shadow-sm"
+                                      : "text-[#827771] hover:text-[#2A2421]"
+                                  }`}
                                 >
-                                  {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                                  Создать страницу мастера
+                                  Частный мастер
                                 </button>
-                                <p className="text-[#827771] text-xs mt-3">
-                                  30 дней полного доступа бесплатно, без привязки карты
-                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => setRole("salon")}
+                                  className={`flex-1 py-2 text-xs font-medium rounded-lg transition-colors ${
+                                    role === "salon"
+                                      ? "bg-white text-[#2A2421] shadow-sm"
+                                      : "text-[#827771] hover:text-[#2A2421]"
+                                  }`}
+                                >
+                                  Студия/Салон
+                                </button>
                               </div>
-                            </>
-                          )}
+                            )}
 
-                          {role === "salon" && (
-                            <>
-                              <div>
-                                <input
-                                  type="text"
-                                  placeholder="Название салона"
-                                  value={salonName}
-                                  onChange={(e) => setSalonName(e.target.value)}
-                                  className="w-full bg-[#F4EFE6] border border-[#EFEAE0] hover:border-[#D9D1C5] focus:border-[#C59A87] focus:ring-1 focus:ring-[#C59A87] focus:ring-inset focus:outline-none rounded-xl px-4 py-3 text-sm text-[#2A2421] placeholder:text-[#827771] mb-2 transition-colors"
-                                  required
-                                />
-                                <AnimatePresence>
-                                  {salonName && (
-                                    <motion.div
-                                      initial={{ opacity: 0, height: 0 }}
-                                      animate={{ opacity: 1, height: "auto" }}
-                                      exit={{ opacity: 0, height: 0 }}
-                                      className="flex items-center gap-2 overflow-hidden"
-                                    >
-                                      <div className="text-xs sm:text-sm text-[#827771] bg-[#F4EFE6]/50 px-3 py-1.5 rounded-lg flex items-center">
-                                        riva.com/<span className="text-[#2A2421] font-medium">{generatedSlug}</span>
-                                      </div>
-                                      <div className="flex items-center gap-1 text-[#4B7355] text-xs font-medium bg-[#C3D5C5]/30 px-2 py-1.5 rounded-lg">
-                                        <Check className="w-3 h-3" />
-                                        Доступно
-                                      </div>
-                                    </motion.div>
-                                  )}
-                                </AnimatePresence>
-                              </div>
+                            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                              {role === "client" && (
+                                <>
+                                  <div className="flex flex-col gap-3">
+                                    <input
+                                      type="text"
+                                      placeholder="Ваше имя (необязательно)"
+                                      value={clientName}
+                                      onChange={(e) => setClientName(e.target.value)}
+                                      className="w-full bg-[#F4EFE6] border border-[#EFEAE0] hover:border-[#D9D1C5] focus:border-[#C59A87] focus:ring-1 focus:ring-[#C59A87] focus:ring-inset focus:outline-none rounded-xl px-4 py-3 text-sm text-[#2A2421] placeholder:text-[#827771] transition-colors"
+                                    />
+                                    <input
+                                      type="email"
+                                      placeholder="Email"
+                                      value={email}
+                                      onChange={(e) => setEmail(e.target.value)}
+                                      className="w-full bg-[#F4EFE6] border border-[#EFEAE0] hover:border-[#D9D1C5] focus:border-[#C59A87] focus:ring-1 focus:ring-[#C59A87] focus:ring-inset focus:outline-none rounded-xl px-4 py-3 text-sm text-[#2A2421] placeholder:text-[#827771] transition-colors"
+                                      required
+                                    />
+                                  </div>
+                                  <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="mt-2 w-full bg-[#C59A87] text-white py-3 rounded-full font-medium transition-colors hover:bg-[#b08876] disabled:opacity-50 flex justify-center items-center gap-2 text-sm"
+                                  >
+                                    {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    Получить код доступа
+                                  </button>
+                                </>
+                              )}
 
-                              <div>
-                                <p className="text-[#827771] text-xs sm:text-sm mb-2">Размер команды</p>
-                                <div className="flex rounded-xl overflow-hidden bg-[#F4EFE6] p-1 gap-1 border border-[#EFEAE0]">
-                                  {["2–5 мастеров", "6–10 мастеров", "10+ мастеров"].map((size) => (
+                              {role === "master" && (
+                                <>
+                                  <div>
+                                    <input
+                                      type="text"
+                                      placeholder="Имя или никнейм"
+                                      value={masterName}
+                                      onChange={(e) => setMasterName(e.target.value)}
+                                      className="w-full bg-[#F4EFE6] border border-[#EFEAE0] hover:border-[#D9D1C5] focus:border-[#C59A87] focus:ring-1 focus:ring-[#C59A87] focus:ring-inset focus:outline-none rounded-xl px-4 py-3 text-sm text-[#2A2421] placeholder:text-[#827771] mb-2 transition-colors"
+                                      required
+                                    />
+                                    <AnimatePresence>
+                                      {masterName && (
+                                        <motion.div
+                                          initial={{ opacity: 0, height: 0 }}
+                                          animate={{ opacity: 1, height: "auto" }}
+                                          exit={{ opacity: 0, height: 0 }}
+                                          className="flex items-center gap-2 overflow-hidden"
+                                        >
+                                          <div className="text-xs sm:text-sm text-[#827771] bg-[#F4EFE6]/50 px-3 py-1.5 rounded-lg flex items-center">
+                                            riva.com/<span className="text-[#2A2421] font-medium">{generatedSlug}</span>
+                                          </div>
+                                          <div className="flex items-center gap-1 text-[#4B7355] text-xs font-medium bg-[#C3D5C5]/30 px-2 py-1.5 rounded-lg">
+                                            <Check className="w-3 h-3" />
+                                            Доступно
+                                          </div>
+                                        </motion.div>
+                                      )}
+                                    </AnimatePresence>
+                                  </div>
+
+                                  <input
+                                    type="email"
+                                    placeholder="Рабочий Email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full bg-[#F4EFE6] border border-[#EFEAE0] hover:border-[#D9D1C5] focus:border-[#C59A87] focus:ring-1 focus:ring-[#C59A87] focus:ring-inset focus:outline-none rounded-xl px-4 py-3 text-sm text-[#2A2421] placeholder:text-[#827771] transition-colors"
+                                    required
+                                  />
+
+                                  <div className="mt-2 text-center">
                                     <button
-                                      key={size}
-                                      type="button"
-                                      onClick={() => setTeamSize(size)}
-                                      className={`flex-1 py-2 text-xs font-medium rounded-lg transition-colors ${
-                                        teamSize === size
-                                          ? "bg-white text-[#2A2421] shadow-sm"
-                                          : "text-[#827771] hover:text-[#2A2421]"
-                                      }`}
+                                      type="submit"
+                                      disabled={isLoading}
+                                      className="w-full bg-[#C59A87] text-white py-3 rounded-full font-medium transition-colors hover:bg-[#b08876] disabled:opacity-50 flex justify-center items-center gap-2 text-sm"
                                     >
-                                      {size}
+                                      {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                                      Создать страницу мастера
                                     </button>
-                                  ))}
-                                </div>
-                              </div>
+                                  </div>
+                                </>
+                              )}
 
-                              <input
-                                type="email"
-                                placeholder="Email владельца или управляющего"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-[#F4EFE6] border border-[#EFEAE0] hover:border-[#D9D1C5] focus:border-[#C59A87] focus:ring-1 focus:ring-[#C59A87] focus:ring-inset focus:outline-none rounded-xl px-4 py-3 text-sm text-[#2A2421] placeholder:text-[#827771] transition-colors"
-                                required
-                              />
+                              {role === "salon" && (
+                                <>
+                                  <div>
+                                    <input
+                                      type="text"
+                                      placeholder="Название салона"
+                                      value={salonName}
+                                      onChange={(e) => setSalonName(e.target.value)}
+                                      className="w-full bg-[#F4EFE6] border border-[#EFEAE0] hover:border-[#D9D1C5] focus:border-[#C59A87] focus:ring-1 focus:ring-[#C59A87] focus:ring-inset focus:outline-none rounded-xl px-4 py-3 text-sm text-[#2A2421] placeholder:text-[#827771] mb-2 transition-colors"
+                                      required
+                                    />
+                                    <AnimatePresence>
+                                      {salonName && (
+                                        <motion.div
+                                          initial={{ opacity: 0, height: 0 }}
+                                          animate={{ opacity: 1, height: "auto" }}
+                                          exit={{ opacity: 0, height: 0 }}
+                                          className="flex items-center gap-2 overflow-hidden"
+                                        >
+                                          <div className="text-xs sm:text-sm text-[#827771] bg-[#F4EFE6]/50 px-3 py-1.5 rounded-lg flex items-center">
+                                            riva.com/<span className="text-[#2A2421] font-medium">{generatedSlug}</span>
+                                          </div>
+                                          <div className="flex items-center gap-1 text-[#4B7355] text-xs font-medium bg-[#C3D5C5]/30 px-2 py-1.5 rounded-lg">
+                                            <Check className="w-3 h-3" />
+                                            Доступно
+                                          </div>
+                                        </motion.div>
+                                      )}
+                                    </AnimatePresence>
+                                  </div>
 
-                              <button
-                                type="submit"
-                                disabled={isLoading}
-                                className="mt-2 w-full bg-[#C59A87] text-white py-3 rounded-full font-medium transition-colors hover:bg-[#b08876] disabled:opacity-50 flex justify-center items-center gap-2 text-sm"
-                              >
-                                {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                                Запустить CRM салона (30 дней триал)
-                              </button>
-                            </>
-                          )}
-                        </form>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                                  <div>
+                                    <p className="text-[#827771] text-xs sm:text-sm mb-2">Размер команды</p>
+                                    <div className="flex rounded-xl overflow-hidden bg-[#F4EFE6] p-1 gap-1 border border-[#EFEAE0]">
+                                      {["2–5", "6–10", "10+"].map((size) => (
+                                        <button
+                                          key={size}
+                                          type="button"
+                                          onClick={() => setTeamSize(size)}
+                                          className={`flex-1 py-2 text-xs font-medium rounded-lg transition-colors ${
+                                            teamSize === size
+                                              ? "bg-white text-[#2A2421] shadow-sm"
+                                              : "text-[#827771] hover:text-[#2A2421]"
+                                          }`}
+                                        >
+                                          {size}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+
+                                  <input
+                                    type="email"
+                                    placeholder="Email владельца или управляющего"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full bg-[#F4EFE6] border border-[#EFEAE0] hover:border-[#D9D1C5] focus:border-[#C59A87] focus:ring-1 focus:ring-[#C59A87] focus:ring-inset focus:outline-none rounded-xl px-4 py-3 text-sm text-[#2A2421] placeholder:text-[#827771] transition-colors"
+                                    required
+                                  />
+
+                                  <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="mt-2 w-full bg-[#C59A87] text-white py-3 rounded-full font-medium transition-colors hover:bg-[#b08876] disabled:opacity-50 flex justify-center items-center gap-2 text-sm"
+                                  >
+                                    {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    Запустить CRM салона (30 дней триал)
+                                  </button>
+                                </>
+                              )}
+                            </form>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </>
+                  )}
                 </motion.div>
               ) : (
                 <motion.div
@@ -551,6 +593,18 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   <div className="flex flex-col items-center gap-3">
                     <button
                       type="button"
+                      disabled={isLoading || cooldown > 0}
+                      onClick={(e) => {
+                        if (cooldown === 0) {
+                          handleSubmit(e);
+                        }
+                      }}
+                      className="text-[#C59A87] text-xs sm:text-sm font-medium hover:text-[#b08876] transition-colors disabled:opacity-50"
+                    >
+                      {cooldown > 0 ? `Отправить код повторно через ${cooldown} сек.` : "Отправить код повторно"}
+                    </button>
+                    <button
+                      type="button"
                       disabled={isLoading}
                       onClick={() => handleVerify()}
                       className="w-full sm:w-auto px-8 bg-[#C59A87] text-white py-2.5 rounded-full font-medium transition-colors hover:bg-[#b08876] disabled:opacity-50 flex justify-center items-center gap-2 text-sm"
@@ -598,33 +652,18 @@ function RoleCard({
     <motion.button
       type="button"
       whileTap={{ scale: 0.98 }}
-      animate={{ scale: isActive ? 1.02 : 1 }}
       onClick={onClick}
-      className={`relative flex flex-col items-center justify-center p-2.5 sm:p-4 rounded-xl sm:rounded-2xl transition-all duration-200 border-2 ${
+      className={`flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl border transition-all h-full ${
         isActive
-          ? "bg-[#C3D5C5]/30 border-[#8FA992]"
-          : "bg-[#F4EFE6]/60 border-transparent hover:bg-[#F4EFE6]"
+          ? "border-[#C59A87] bg-[#FDFBF7] shadow-sm text-[#C59A87]"
+          : "border-[#EFEAE0] bg-[#F4EFE6] text-[#827771] hover:border-[#D9D1C5] hover:bg-[#FDFBF7]"
       }`}
     >
-      <div className={`${isActive ? "text-[#2A2421]" : "text-[#827771]"}`}>{icon}</div>
-      <div className={`text-xs sm:text-sm font-medium ${isActive ? "text-[#2A2421]" : "text-[#2A2421]"}`}>{label}</div>
-      <div className="text-[9px] sm:text-[10px] text-[#827771] mt-1 text-center leading-tight">{title}</div>
+      {icon}
+      <span className={`text-[10px] sm:text-xs font-semibold mb-0.5 ${isActive ? "text-[#C59A87]" : "text-[#2A2421]"}`}>
+        {label}
+      </span>
+      <span className="text-[9px] sm:text-[10px] text-center leading-tight opacity-80">{title}</span>
     </motion.button>
-  );
-}
-
-function Pill({ label, isActive, onClick }: { label: string; isActive: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-        isActive
-          ? "bg-[#C3D5C5] text-[#2A2421]"
-          : "bg-[#F4EFE6] text-[#827771] hover:bg-[#EFEAE0]"
-      }`}
-    >
-      {label}
-    </button>
   );
 }
