@@ -8,7 +8,6 @@ import {
   Search,
   ChevronDown,
   Star,
-  Heart,
   SlidersHorizontal,
   X,
   CreditCard,
@@ -20,6 +19,7 @@ import { motion } from "framer-motion";
 import { Slider } from "@/components/ui/slider";
 import { MOCK_PLACES } from "@/lib/mock-data";
 import { AuthModal } from "@/components/auth-modal";
+import { CardGallery } from "@/components/card-gallery";
 import {
   Sheet,
   SheetContent,
@@ -39,6 +39,7 @@ export default function Home() {
   const [radius, setRadius] = useState<number>(5);
   const [priceMin, setPriceMin] = useState<number>(200);
   const [priceMax, setPriceMax] = useState<number>(1500);
+  const [favorites, setFavorites] = useState<string[]>([]);
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authTab, setAuthTab] = useState<"login" | "register">("login");
@@ -66,6 +67,12 @@ export default function Home() {
   const toggleCategory = (cat: string) => {
     setSelectedCategories((prev) =>
       prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
+  };
+
+  const toggleFavorite = (id: string) => {
+    setFavorites((prev) =>
+      prev.includes(id) ? prev.filter((fav) => fav !== id) : [...prev, id]
     );
   };
 
@@ -346,7 +353,7 @@ export default function Home() {
         {/* Desktop Sidebar Filters */}
         <aside className="hidden lg:flex w-72 shrink-0 flex-col gap-6 h-fit sticky top-28">
           <div className="bg-white rounded-2xl border border-[#EAE3D9] p-5 flex flex-col gap-6 shadow-[0_2px_12px_rgba(42,36,33,0.02)]">
-            {/* Header with clear high-contrast title */}
+            {/* Header */}
             <div className="flex items-center justify-between pb-1 border-b border-[#F0ECE4]">
               <h2 className="font-serif text-lg font-semibold text-[#2A2421] tracking-tight">
                 Фильтры
@@ -454,13 +461,20 @@ export default function Home() {
 
         {/* Main Feed */}
         <div className="flex-1">
-          <div className="mb-6">
-            <h1 className="font-serif text-3xl md:text-[34px] font-normal text-main tracking-tight mb-1">
-              Салоны и мастера поблизости
-            </h1>
-            <p className="text-sm text-[#827771]">
-              Салоны и частные мастера в Анталье • 24 варианта
-            </p>
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+            <div>
+              <h1 className="font-serif text-3xl md:text-[34px] font-normal text-main tracking-tight mb-1">
+                Салоны и мастера поблизости
+              </h1>
+              <p className="text-sm text-[#827771]">
+                Салоны и частные мастера в Анталье • 24 варианта
+              </p>
+            </div>
+            {/* Quick aesthetic pill indicator */}
+            <div className="hidden sm:flex items-center gap-2 text-xs text-[#827771]">
+              <span className="w-2 h-2 rounded-full bg-[#8A9580]" />
+              <span>Листайте фото работ в карточках</span>
+            </div>
           </div>
 
           <motion.div
@@ -469,99 +483,40 @@ export default function Home() {
             animate="show"
             className="grid grid-cols-1 md:grid-cols-2 gap-6"
           >
-            {MOCK_PLACES.map((place) => (
-              <motion.div
-                key={place.id}
-                variants={itemVariants}
-                className="bg-white rounded-2xl border border-[#EAE3D9] overflow-hidden flex flex-col justify-between shadow-[0_2px_12px_rgba(42,36,33,0.03)] hover:shadow-[0_8px_24px_rgba(42,36,33,0.06)] transition-shadow"
-              >
-                {/* SALON CARD */}
-                {place.type === "salon" ? (
-                  <div className="flex flex-col h-full justify-between">
-                    <div>
-                      {/* Image header */}
-                      <div className="relative h-52 w-full bg-[#EAE3D9]">
-                        <img
-                          src={place.image}
+            {MOCK_PLACES.map((place) => {
+              const isFav = favorites.includes(place.id);
+              const galleryImages =
+                place.portfolio && place.portfolio.length > 0
+                  ? place.portfolio
+                  : place.image
+                  ? [place.image]
+                  : place.avatar
+                  ? [place.avatar]
+                  : [];
+
+              return (
+                <motion.div
+                  key={place.id}
+                  variants={itemVariants}
+                  className="bg-white rounded-2xl border border-[#EAE3D9] overflow-hidden flex flex-col justify-between shadow-[0_2px_12px_rgba(42,36,33,0.03)] hover:shadow-[0_8px_24px_rgba(42,36,33,0.06)] transition-shadow"
+                >
+                  {/* SALON CARD */}
+                  {place.type === "salon" ? (
+                    <div className="flex flex-col h-full justify-between">
+                      <div>
+                        {/* Interactive Work Gallery with Swipe & Dots */}
+                        <CardGallery
+                          images={galleryImages}
                           alt={place.name}
-                          className="w-full h-full object-cover"
+                          badge={place.badge}
+                          isFavorite={isFav}
+                          onFavoriteClick={() => toggleFavorite(place.id)}
                         />
-                        <button
-                          className="absolute top-3.5 right-3.5 text-white/90 hover:text-white transition-colors drop-shadow-md cursor-pointer"
-                          aria-label="В избранное"
-                        >
-                          <Heart className="w-5 h-5 stroke-[1.8]" />
-                        </button>
-                      </div>
 
-                      <div className="p-5 pb-3">
-                        <h2 className="font-serif text-xl font-medium text-main tracking-tight">
-                          {place.name}
-                        </h2>
-                        <div className="flex items-center gap-1.5 text-sm font-medium mt-1">
-                          <Star className="w-4 h-4 fill-main text-main" />
-                          <span className="text-main">{place.rating}</span>
-                          <span className="text-[#827771] font-normal">
-                            • {place.distance} км
-                          </span>
-                        </div>
-                        <p className="text-sm text-[#5A504B] mt-2 line-clamp-1">
-                          {place.description}
-                        </p>
-
-                        {/* Slots */}
-                        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-3">
-                          {place.slots.map((slot, idx) => (
-                            <button
-                              key={idx}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${
-                                slot.highlighted
-                                  ? "bg-[#C59A87] text-white shadow-xs"
-                                  : "bg-[#8A9580]/15 text-[#3D4735] hover:bg-[#8A9580]/25 border border-[#8A9580]/25"
-                              }`}
-                            >
-                              {slot.time}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Footer */}
-                    <div className="px-5 pb-5 pt-3 border-t border-[#F0ECE4] flex items-center justify-between">
-                      <span className="text-sm font-medium text-main">
-                        Задаток: {place.deposit} TL
-                      </span>
-                      <button className="h-9 px-5 rounded-xl bg-[#C59A87] text-white text-sm font-medium hover:bg-[#B58976] transition-colors shadow-xs cursor-pointer">
-                        Записаться
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  /* SOLO MASTER CARD */
-                  <div className="p-5 flex flex-col h-full justify-between">
-                    <div>
-                      {/* Top badge */}
-                      <div className="flex justify-end mb-1">
-                        <span className="bg-[#8A9580]/20 text-[#3D4735] border border-[#8A9580]/30 text-[11px] font-medium px-2.5 py-0.5 rounded-md tracking-wide">
-                          Частный мастер
-                        </span>
-                      </div>
-
-                      {/* Master Info */}
-                      <div className="flex items-start gap-4">
-                        <img
-                          src={place.avatar}
-                          alt={place.name}
-                          className="w-16 h-16 rounded-full object-cover shrink-0 border border-[#EAE3D9]"
-                        />
-                        <div className="flex-1 min-w-0">
+                        <div className="p-5 pb-3">
                           <h2 className="font-serif text-xl font-medium text-main tracking-tight">
                             {place.name}
                           </h2>
-                          <p className="text-sm text-[#827771] mt-0.5">
-                            {place.specialization}
-                          </p>
                           <div className="flex items-center gap-1.5 text-sm font-medium mt-1">
                             <Star className="w-4 h-4 fill-main text-main" />
                             <span className="text-main">{place.rating}</span>
@@ -569,31 +524,119 @@ export default function Home() {
                               • {place.distance} км
                             </span>
                           </div>
-                          <p className="text-sm text-[#5A504B] mt-2.5 leading-relaxed">
+                          <p className="text-sm text-[#5A504B] mt-2 line-clamp-1">
                             {place.description}
                           </p>
+
+                          {/* Slots */}
+                          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-3">
+                            {place.slots.map((slot, idx) => (
+                              <button
+                                key={idx}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 cursor-pointer ${
+                                  slot.highlighted
+                                    ? "bg-[#C59A87] text-white shadow-xs"
+                                    : "bg-[#8A9580]/15 text-[#3D4735] hover:bg-[#8A9580]/25 border border-[#8A9580]/25"
+                                }`}
+                              >
+                                {slot.time}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Footer */}
-                    <div className="pt-4 mt-4 border-t border-[#F0ECE4] flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-main min-w-0">
-                        <CreditCard className="w-4 h-4 text-[#827771] shrink-0" />
-                        <span className="truncate">
-                          {place.primaryService?.name} • от{" "}
-                          {place.primaryService?.price} TL • от{" "}
-                          {place.primaryService?.duration} мин
+                      {/* Footer */}
+                      <div className="px-5 pb-5 pt-3 border-t border-[#F0ECE4] flex items-center justify-between">
+                        <span className="text-sm font-medium text-main">
+                          Задаток: {place.deposit} TL
                         </span>
+                        <button className="h-9 px-5 rounded-xl bg-[#C59A87] text-white text-sm font-medium hover:bg-[#B58976] transition-colors shadow-xs cursor-pointer">
+                          Записаться
+                        </button>
                       </div>
-                      <button className="h-9 px-5 rounded-xl bg-[#C59A87] text-white text-sm font-medium hover:bg-[#B58976] transition-colors shrink-0 shadow-xs cursor-pointer">
-                        Записаться
-                      </button>
                     </div>
-                  </div>
-                )}
-              </motion.div>
-            ))}
+                  ) : (
+                    /* SOLO MASTER CARD */
+                    <div className="flex flex-col h-full justify-between">
+                      <div>
+                        {/* Interactive Work Gallery with Swipe & Dots */}
+                        <CardGallery
+                          images={galleryImages}
+                          alt={place.name}
+                          badge={place.badge}
+                          typeBadge="Частный мастер"
+                          isFavorite={isFav}
+                          onFavoriteClick={() => toggleFavorite(place.id)}
+                        />
+
+                        {/* Master Info */}
+                        <div className="p-5 pb-3">
+                          <div className="flex items-start gap-3.5">
+                            <img
+                              src={place.avatar}
+                              alt={place.name}
+                              className="w-13 h-13 rounded-full object-cover shrink-0 border border-[#EAE3D9] mt-0.5"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h2 className="font-serif text-xl font-medium text-main tracking-tight">
+                                {place.name}
+                              </h2>
+                              <p className="text-sm text-[#827771] mt-0.5">
+                                {place.specialization}
+                              </p>
+                              <div className="flex items-center gap-1.5 text-sm font-medium mt-1">
+                                <Star className="w-4 h-4 fill-main text-main" />
+                                <span className="text-main">{place.rating}</span>
+                                <span className="text-[#827771] font-normal">
+                                  • {place.distance} км
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <p className="text-sm text-[#5A504B] mt-3 line-clamp-2 leading-relaxed">
+                            {place.description}
+                          </p>
+
+                          {/* Slots for solo master */}
+                          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-3">
+                            {place.slots.map((slot, idx) => (
+                              <button
+                                key={idx}
+                                disabled={!slot.available}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${
+                                  !slot.available
+                                    ? "bg-[#F4EFE6] text-[#A6A09B] cursor-not-allowed line-through"
+                                    : "bg-[#8A9580]/15 text-[#3D4735] hover:bg-[#8A9580]/25 border border-[#8A9580]/25 cursor-pointer"
+                                }`}
+                              >
+                                {slot.time}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Footer */}
+                      <div className="px-5 pb-5 pt-3 border-t border-[#F0ECE4] flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-main min-w-0">
+                          <CreditCard className="w-4 h-4 text-[#827771] shrink-0" />
+                          <span className="truncate">
+                            {place.primaryService?.name} • от{" "}
+                            {place.primaryService?.price} TL • от{" "}
+                            {place.primaryService?.duration} мин
+                          </span>
+                        </div>
+                        <button className="h-9 px-5 rounded-xl bg-[#C59A87] text-white text-sm font-medium hover:bg-[#B58976] transition-colors shrink-0 shadow-xs cursor-pointer">
+                          Записаться
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              );
+            })}
           </motion.div>
         </div>
       </main>
