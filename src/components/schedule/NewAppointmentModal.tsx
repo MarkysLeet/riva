@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Calendar, Clock, User, Phone, Check } from 'lucide-react';
+import { X, Calendar } from 'lucide-react';
 import type { Appointment, Specialist } from './mockScheduleData';
 
 interface NewAppointmentModalProps {
@@ -29,7 +29,7 @@ export function NewAppointmentModal({
     selectedSpecialistId || (specialists[0]?.id ?? 'spec-1')
   );
   const [startHour, setStartHour] = useState(selectedHour);
-  const [startMinutes, setStartMinutes] = useState(0);
+  const [startMinutes] = useState(0);
   const [price, setPrice] = useState(2500);
   const [depositAmount, setDepositAmount] = useState(300);
   const [status, setStatus] = useState<'confirmed' | 'pending'>('confirmed');
