@@ -1,5 +1,9 @@
+'use client';
+
 import React from 'react';
-import { Calendar, Users, Sliders, Settings } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Calendar, Users, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SidebarNavProps {
@@ -7,6 +11,11 @@ interface SidebarNavProps {
 }
 
 export function SidebarNav({ className }: SidebarNavProps) {
+  const pathname = usePathname();
+
+  const isCalendar = pathname === '/dashboard';
+  const isSettings = pathname === '/dashboard/settings';
+
   return (
     <aside
       className={cn(
@@ -15,7 +24,7 @@ export function SidebarNav({ className }: SidebarNavProps) {
       )}
     >
       {/* Brand Monogram Crest */}
-      <div className="flex flex-col items-center mb-8 px-2">
+      <Link href="/dashboard" className="flex flex-col items-center mb-8 px-2 cursor-pointer">
         <svg
           viewBox="0 0 48 54"
           className="w-11 h-12 text-[#684C38] fill-current drop-shadow-sm mb-1"
@@ -29,23 +38,24 @@ export function SidebarNav({ className }: SidebarNavProps) {
         <span className="font-serif tracking-[0.28em] text-[13px] font-semibold text-[#4A3D34] pl-1">
           RIVA
         </span>
-      </div>
+      </Link>
 
       {/* Vertical Navigation Tabs */}
       <nav className="w-full flex-1 flex flex-col space-y-3">
-        {/* 1. Календарь (Active) */}
-        <button
-          type="button"
-          className="w-full relative flex flex-col items-center justify-center py-3.5 px-1 bg-[#DFD5C6] text-[#28221D] transition-colors group cursor-pointer"
+        {/* 1. Календарь */}
+        <Link
+          href="/dashboard"
+          className={cn(
+            "w-full relative flex flex-col items-center justify-center py-3.5 px-1 transition-colors group cursor-pointer",
+            isCalendar ? "bg-[#DFD5C6] text-[#28221D]" : "text-[#5E544C] hover:text-[#28221D] hover:bg-[#EAE2D5]/50"
+          )}
         >
-          {/* Terracotta active indicator line on the left */}
-          <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#B35E46]" />
-          
-          <Calendar className="w-7 h-7 stroke-[1.4] text-[#28221D] mb-1" />
-          <span className="text-[13px] font-medium text-[#28221D]">
+          {isCalendar && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#B35E46]" />}
+          <Calendar className="w-7 h-7 stroke-[1.4] mb-1" />
+          <span className={cn("text-[13px]", isCalendar ? "font-medium" : "font-normal")}>
             Календарь
           </span>
-        </button>
+        </Link>
 
         {/* 2. Клиенты */}
         <button
@@ -78,15 +88,19 @@ export function SidebarNav({ className }: SidebarNavProps) {
         </button>
 
         {/* 4. Настройки */}
-        <button
-          type="button"
-          className="w-full flex flex-col items-center justify-center py-3 px-1 text-[#5E544C] hover:text-[#28221D] hover:bg-[#EAE2D5]/50 transition-colors cursor-pointer"
+        <Link
+          href="/dashboard/settings"
+          className={cn(
+            "w-full relative flex flex-col items-center justify-center py-3.5 px-1 transition-colors group cursor-pointer",
+            isSettings ? "bg-[#DFD5C6] text-[#28221D]" : "text-[#5E544C] hover:text-[#28221D] hover:bg-[#EAE2D5]/50"
+          )}
         >
-          <Settings className="w-7 h-7 stroke-[1.4] text-[#5E544C] mb-1" />
-          <span className="text-[13px] font-normal text-[#5E544C]">
+          {isSettings && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#B35E46]" />}
+          <Settings className="w-7 h-7 stroke-[1.4] mb-1" />
+          <span className={cn("text-[13px]", isSettings ? "font-medium" : "font-normal")}>
             Настройки
           </span>
-        </button>
+        </Link>
       </nav>
     </aside>
   );

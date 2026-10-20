@@ -6,6 +6,8 @@ import { ScheduleView } from '@/components/schedule/ScheduleView';
 import { AppointmentDetailsSidebar } from '@/components/schedule/AppointmentDetailsSidebar';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { mockScheduleData } from '@/components/schedule/mockScheduleData';
+import { Settings, Info } from 'lucide-react';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   // Default to apt-1 (matching the reference screen state)
@@ -19,18 +21,38 @@ export default function DashboardPage() {
       <SidebarNav className="hidden lg:flex" />
 
       {/* Main Content Area */}
-      <main className="flex-1 flex min-w-0 h-full overflow-hidden">
-        <ScheduleView
-          selectedAppointmentId={selectedAppointmentId}
-          onSelectAppointment={setSelectedAppointmentId}
-        />
+      <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        {/* Top Status Bar (Integration requirement) */}
+        <header className="h-16 border-b border-[#EAE3D9] bg-white flex items-center justify-between px-6 shrink-0">
+          <h1 className="font-serif text-lg font-medium text-main">Календарь записей</h1>
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FAF7F2] border border-[#EAE3D9]">
+              <div className="w-2 h-2 rounded-full bg-accent-terra" />
+              <span className="text-xs font-medium text-main">Черновик (не опубликован)</span>
+            </div>
+            <Link
+              href="/dashboard/settings"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-main text-white hover:bg-[#3E352F] transition-colors"
+            >
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">Настройки бизнеса</span>
+            </Link>
+          </div>
+        </header>
 
-        {/* Desktop Right Sidebar (Selected Appointment Context Panel) */}
-        <div className="hidden xl:block h-full">
-          <AppointmentDetailsSidebar
-            appointment={selectedAppointment}
-            onClose={() => setSelectedAppointmentId(null)}
+        <div className="flex-1 flex min-h-0">
+          <ScheduleView
+            selectedAppointmentId={selectedAppointmentId}
+            onSelectAppointment={setSelectedAppointmentId}
           />
+
+          {/* Desktop Right Sidebar (Selected Appointment Context Panel) */}
+          <div className="hidden xl:block h-full">
+            <AppointmentDetailsSidebar
+              appointment={selectedAppointment}
+              onClose={() => setSelectedAppointmentId(null)}
+            />
+          </div>
         </div>
 
         {/* Mobile / Tablet Bottom Sheet for Details */}
