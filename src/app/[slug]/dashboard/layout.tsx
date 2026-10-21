@@ -2,6 +2,7 @@ export const instant = false;
 import React from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { SidebarNav } from '@/components/schedule/SidebarNav';
 
 interface DashboardLayoutProps {
@@ -16,6 +17,7 @@ export default async function DashboardLayout({
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
   const supabase = await createClient();
+  const adminDb = createAdminClient();
 
   const {
     data: { user },
@@ -25,10 +27,10 @@ export default async function DashboardLayout({
     redirect('/?auth=login');
   }
 
-  // Find the tenant by slug
-  const { data: tenant } = await supabase
+  // Find the tenant by slug using adminDb (bypasses RLS)
+  const { data: tenant } = await adminDb
     .from('tenants')
-    .select('id, owner_id')
+    .select('id')
     .eq('slug', slug)
     .maybeSingle();
 
@@ -38,42 +40,21 @@ export default async function DashboardLayout({
 
   let isAuthorized = false;
 
-  // 1. Check direct owner_id
-  if (tenant.owner_id === user.id) {
+  // 1. Check tenant_owners table
+  const { data: ownerRecord } = await adminDb
+    .from('tenant_owners')
+    .select('id')
+    .eq('tenant_id', tenant.id)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (ownerRecord) {
     isAuthorized = true;
   }
 
-  // 2. Check tenant_owners table
+  // 2. Check masters table
   if (!isAuthorized) {
-    const { data: ownerRecord } = await supabase
-      .from('tenant_owners')
-      .select('id')
-      .eq('tenant_id', tenant.id)
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (ownerRecord) {
-      isAuthorized = true;
-    }
-  }
-
-  // 3. Check business_masters table
-  if (!isAuthorized) {
-    const { data: master } = await supabase
-      .from('business_masters')
-      .select('id')
-      .eq('business_id', tenant.id)
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (master) {
-      isAuthorized = true;
-    }
-  }
-
-  // 4. Check masters table
-  if (!isAuthorized) {
-    const { data: masterAlt } = await supabase
+    const { data: masterAlt } = await adminDb
       .from('masters')
       .select('id')
       .eq('tenant_id', tenant.id)
@@ -93,7 +74,7 @@ export default async function DashboardLayout({
     <div className="flex h-screen w-full bg-[#FAF7F2] overflow-hidden font-sans">
       <SidebarNav currentSlug={slug} />
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-        {children}
+        <main className="flex-1 overflow-hidden relative">{children}</main>
       </div>
     </div>
   );

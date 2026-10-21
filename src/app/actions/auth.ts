@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { setupNewUser } from "@/lib/auth-helpers";
 
 export type RegistrationData = {
@@ -14,6 +15,7 @@ export type RegistrationData = {
 
 export async function registerTenant(data: RegistrationData) {
   const supabase = await createClient();
+  const adminDb = createAdminClient();
 
   const { email, password, name, type, phone, socials } = data;
   const isSoloMaster = type === "solo";
@@ -25,16 +27,16 @@ export async function registerTenant(data: RegistrationData) {
     .replace(/(^-|-$)+/g, "");
 
   if (!baseSlug) {
-      baseSlug = "studio";
+    baseSlug = "studio";
   }
 
-  // Very basic uniqueness check for slug
+  // Check uniqueness for slug using adminDb
   let slug = baseSlug;
   let isUnique = false;
   let counter = 1;
 
   while (!isUnique) {
-    const { data: existing } = await supabase
+    const { data: existing } = await adminDb
       .from("tenants")
       .select("id")
       .eq("slug", slug)
@@ -43,8 +45,7 @@ export async function registerTenant(data: RegistrationData) {
     if (!existing) {
       isUnique = true;
     } else {
-      slug = `${baseSlug}-${counter}`;
-      counter++;
+      slug = `${baseSlug}-${counter++}`;
     }
   }
 
@@ -60,19 +61,17 @@ export async function registerTenant(data: RegistrationData) {
 
   const userId = authData.user.id;
 
-  // 2. Insert into tenants table
-  const { data: tenantData, error: tenantError } = await supabase
+  // 2. Insert into tenants table using adminDb to guarantee write access
+  const { data: tenantData, error: tenantError } = await adminDb
     .from("tenants")
     .insert([
       {
         slug: slug,
         name: name,
-        phone: phone,
-        type: isSoloMaster ? "solo" : "salon",
+        phone: phone || null,
         social_networks: socials?.map((s) => s.url).filter(Boolean) || [],
         is_solo_master: isSoloMaster,
-        owner_id: userId,
-        status: "published",
+        settings: {},
       },
     ])
     .select("id, slug")
@@ -83,32 +82,20 @@ export async function registerTenant(data: RegistrationData) {
   }
 
   // 3. Link owner to tenant
-  await supabase.from("tenant_owners").insert([
+  await adminDb.from("tenant_owners").insert([
     {
       tenant_id: tenantData.id,
       user_id: userId,
-      role: "owner",
     },
   ]);
 
   // 4. Link specialist
-  await supabase.from("masters").insert([
+  await adminDb.from("masters").insert([
     {
       tenant_id: tenantData.id,
       user_id: userId,
       name: name,
-      role: "owner",
-      status: "active",
-    },
-  ]);
-
-  await supabase.from("business_masters").insert([
-    {
-      business_id: tenantData.id,
-      user_id: userId,
-      name: name,
-      role: "owner",
-      status: "active",
+      schedule_rules: {},
     },
   ]);
 

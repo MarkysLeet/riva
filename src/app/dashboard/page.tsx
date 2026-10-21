@@ -2,9 +2,11 @@
 export const instant = false;
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export default async function DashboardRedirector() {
   const supabase = await createClient();
+  const adminDb = createAdminClient();
 
   const {
     data: { user },
@@ -16,9 +18,9 @@ export default async function DashboardRedirector() {
 
   let resolvedSlug: string | null = null;
 
-  // 1. Check tenant_owners table (primary association created during onboarding / OTP)
+  // 1. Check tenant_owners table using admin client to bypass RLS restrictions
   try {
-    const { data: tenantOwnerEntry } = await supabase
+    const { data: tenantOwnerEntry } = await adminDb
       .from('tenant_owners')
       .select('tenant_id')
       .eq('user_id', user.id)
@@ -26,7 +28,7 @@ export default async function DashboardRedirector() {
       .maybeSingle();
 
     if (tenantOwnerEntry?.tenant_id) {
-      const { data: tenantObj } = await supabase
+      const { data: tenantObj } = await adminDb
         .from('tenants')
         .select('slug')
         .eq('id', tenantOwnerEntry.tenant_id)
@@ -38,10 +40,10 @@ export default async function DashboardRedirector() {
     }
   } catch (_e) {}
 
-  // 2. Check direct owner_id on tenants table
+  // 2. Check direct owner_id on tenants table (if exists in schema)
   if (!resolvedSlug) {
     try {
-      const { data: ownedTenant } = await supabase
+      const { data: ownedTenant } = await adminDb
         .from('tenants')
         .select('slug')
         .eq('owner_id', user.id)
@@ -54,34 +56,10 @@ export default async function DashboardRedirector() {
     } catch (_e) {}
   }
 
-  // 3. Check business_masters table
+  // 3. Check masters table (fallback)
   if (!resolvedSlug) {
     try {
-      const { data: masterEntry } = await supabase
-        .from('business_masters')
-        .select('business_id')
-        .eq('user_id', user.id)
-        .limit(1)
-        .maybeSingle();
-
-      if (masterEntry?.business_id) {
-        const { data: tenantObj } = await supabase
-          .from('tenants')
-          .select('slug')
-          .eq('id', masterEntry.business_id)
-          .maybeSingle();
-
-        if (tenantObj?.slug) {
-          resolvedSlug = tenantObj.slug;
-        }
-      }
-    } catch (_e) {}
-  }
-
-  // 4. Check masters table (fallback)
-  if (!resolvedSlug) {
-    try {
-      const { data: masterAltEntry } = await supabase
+      const { data: masterAltEntry } = await adminDb
         .from('masters')
         .select('tenant_id')
         .eq('user_id', user.id)
@@ -89,7 +67,7 @@ export default async function DashboardRedirector() {
         .maybeSingle();
 
       if (masterAltEntry?.tenant_id) {
-        const { data: tenantObj } = await supabase
+        const { data: tenantObj } = await adminDb
           .from('tenants')
           .select('slug')
           .eq('id', masterAltEntry.tenant_id)
@@ -108,7 +86,7 @@ export default async function DashboardRedirector() {
   }
 
   // AUTO-PROVISIONING:
-  // If user has no workspace yet, automatically create one on the fly!
+  // If user has no workspace yet, automatically create one on the fly with admin permissions!
   const meta = user.user_metadata || {};
   const isMaster = meta.role === 'master';
   const rawName =
@@ -130,7 +108,7 @@ export default async function DashboardRedirector() {
   let counter = 1;
 
   while (!isUnique) {
-    const { data: existing } = await supabase
+    const { data: existing } = await adminDb
       .from('tenants')
       .select('id')
       .eq('slug', candidateSlug)
@@ -144,47 +122,33 @@ export default async function DashboardRedirector() {
   }
 
   try {
-    const { data: newTenant, error: createError } = await supabase
+    const { data: newTenant, error: createError } = await adminDb
       .from('tenants')
       .insert([
         {
           slug: candidateSlug,
           name: rawName,
-          type: isMaster ? 'solo' : 'salon',
           is_solo_master: isMaster,
-          owner_id: user.id,
-          status: 'published',
+          settings: {},
         },
       ])
       .select('id, slug')
       .single();
 
     if (!createError && newTenant) {
-      await supabase.from('tenant_owners').insert([
+      await adminDb.from('tenant_owners').insert([
         {
           tenant_id: newTenant.id,
           user_id: user.id,
-          role: 'owner',
         },
       ]);
 
-      await supabase.from('masters').insert([
+      await adminDb.from('masters').insert([
         {
           tenant_id: newTenant.id,
           user_id: user.id,
           name: rawName,
-          role: 'owner',
-          status: 'active',
-        },
-      ]);
-
-      await supabase.from('business_masters').insert([
-        {
-          business_id: newTenant.id,
-          user_id: user.id,
-          name: rawName,
-          role: 'owner',
-          status: 'active',
+          schedule_rules: {},
         },
       ]);
 

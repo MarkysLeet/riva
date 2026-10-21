@@ -24,7 +24,7 @@ export async function addWaitlistRequest(data: {
   const { error } = await supabase
     .from('waitlist_requests')
     .insert({
-      business_id: tenant.id,
+      tenant_id: tenant.id,
       client_name: data.clientName,
       client_phone: data.clientPhone,
       service_id: data.serviceId || null,

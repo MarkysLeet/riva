@@ -12,7 +12,7 @@ export default async function ServicesPage({ params }: { params: Promise<{ slug:
   const { data: tenant } = await supabase.from('tenants').select('id').eq('slug', slug).single();
   if (!tenant) return <div>Tenant not found</div>;
 
-  const { data: servicesRaw } = await supabase.from('services').select('*').eq('business_id', tenant.id);
+  const { data: servicesRaw } = await supabase.from('services').select('*').eq('tenant_id', tenant.id);
 
   const initialServices: ServiceItem[] = (servicesRaw || []).map((s: any) => ({
     id: s.id,
@@ -21,8 +21,8 @@ export default async function ServicesPage({ params }: { params: Promise<{ slug:
     description: '',
     price: s.price,
     durationMinutes: s.duration_minutes,
-    bufferMinutes: 0,
-    depositAmount: 0,
+    bufferMinutes: s.buffer_minutes || 0,
+    depositAmount: s.deposit_amount || 0,
     masterName: 'Все мастера',
     isActive: s.is_active
   }));

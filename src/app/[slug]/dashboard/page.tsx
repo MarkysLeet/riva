@@ -21,19 +21,19 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
 
   // Fetch actual data
   const { data: specialists } = await supabase
-    .from('business_masters')
+    .from('masters')
     .select('*')
-    .eq('business_id', tenant.id);
+    .eq('tenant_id', tenant.id);
 
   const { data: appointmentsRaw } = await supabase
     .from('appointments')
     .select('*, services(name)')
-    .eq('business_id', tenant.id);
+    .eq('tenant_id', tenant.id);
 
   const { data: waitlistRaw } = await supabase
     .from('waitlist_requests')
     .select('*, services(name)')
-    .eq('business_id', tenant.id);
+    .eq('tenant_id', tenant.id);
 
   return (
     <DashboardClient

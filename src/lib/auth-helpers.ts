@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-import { createClient as createServerClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function setupNewUser(user: { id: string; email?: string; user_metadata?: Record<string, unknown> }) {
   if (!user) return null;
@@ -12,15 +11,8 @@ export async function setupNewUser(user: { id: string; email?: string; user_meta
     return { success: true, role };
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  let db: any;
-  if (supabaseUrl && serviceRoleKey) {
-    db = createSupabaseClient(supabaseUrl, serviceRoleKey);
-  } else {
-    db = await createServerClient();
-  }
+  // Always use admin client for provisioning to bypass RLS restrictions safely on the server
+  const db = createAdminClient();
 
   // Check if tenant_owner already exists for this user to avoid duplicate setup
   const { data: existingOwner } = await db
@@ -44,7 +36,7 @@ export async function setupNewUser(user: { id: string; email?: string; user_meta
 
   const name =
     (metadata.name as string) ||
-    (user.email ? user.email.split("@")[0] : "Новый пользователь");
+    (user.email ? user.email.split("@")[0] : "Мой салон");
   const isSoloMaster = role === "master";
 
   let baseSlug = (metadata.slug as string) || (user.email ? user.email.split("@")[0].split("+")[0] : "studio");
@@ -81,10 +73,8 @@ export async function setupNewUser(user: { id: string; email?: string; user_meta
         slug: slug,
         name: name,
         phone: phone,
-        type: isSoloMaster ? "solo" : "salon",
         is_solo_master: isSoloMaster,
-        owner_id: user.id,
-        status: "published",
+        settings: {},
       },
     ])
     .select("id, slug")
@@ -98,7 +88,6 @@ export async function setupNewUser(user: { id: string; email?: string; user_meta
     {
       tenant_id: tenantData.id,
       user_id: user.id,
-      role: "owner",
     },
   ]);
 
@@ -107,18 +96,7 @@ export async function setupNewUser(user: { id: string; email?: string; user_meta
       tenant_id: tenantData.id,
       user_id: user.id,
       name: name,
-      role: "owner",
-      status: "active",
-    },
-  ]);
-
-  await db.from("business_masters").insert([
-    {
-      business_id: tenantData.id,
-      user_id: user.id,
-      name: name,
-      role: "owner",
-      status: "active",
+      schedule_rules: {},
     },
   ]);
 

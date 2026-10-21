@@ -24,9 +24,8 @@ export async function addService(data: {
   const { error } = await supabase
     .from('services')
     .insert({
-      business_id: tenant.id,
+      tenant_id: tenant.id,
       name: data.name,
-      category: data.category,
       price: data.price,
       duration_minutes: data.duration_minutes,
       is_active: true,

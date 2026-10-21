@@ -82,7 +82,7 @@ export async function createAppointment(data: {
   const { data: appointment, error } = await supabase
     .from('appointments')
     .insert({
-      business_id: tenant.id,
+      tenant_id: tenant.id,
       master_id: data.specialistId,
       service_id: data.serviceId || null,
       client_id: clientId,
