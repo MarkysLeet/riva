@@ -15,19 +15,30 @@ export default async function SalonPublicPage({ params }: PageProps) {
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
 
-  let tenantData: { id: string; name: string; is_solo_master?: boolean; owner_id?: string } | null = null;
+  let tenantData: { id: string; name: string; is_solo_master?: boolean; settings?: any } | null = null;
   let isOwner = false;
+  let realServices: any[] = [];
 
   try {
     const supabase = await createClient();
     const { data: tenant } = await supabase
       .from('tenants')
-      .select('id, name, is_solo_master, owner_id')
+      .select('id, name, is_solo_master, settings')
       .eq('slug', slug)
       .maybeSingle();
 
     if (tenant) {
       tenantData = tenant;
+
+      const { data: services } = await supabase
+        .from('services')
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .eq('is_active', true);
+
+      if (services) {
+        realServices = services;
+      }
     }
 
     const {
@@ -35,22 +46,18 @@ export default async function SalonPublicPage({ params }: PageProps) {
     } = await supabase.auth.getUser();
 
     if (user && tenant) {
-      if (tenant.owner_id === user.id) {
+      const { data: ownerRec } = await supabase
+        .from('tenant_owners')
+        .select('id')
+        .eq('tenant_id', tenant.id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (ownerRec) {
         isOwner = true;
-      } else {
-        const { data: ownerRec } = await supabase
-          .from('tenant_owners')
-          .select('id')
-          .eq('tenant_id', tenant.id)
-          .eq('user_id', user.id)
-          .maybeSingle();
-        if (ownerRec) {
-          isOwner = true;
-        }
       }
     }
   } catch (_err) {
-    // If table doesn't exist yet or connection fails, use fallback
+    // If connection fails, use fallback
   }
 
   // Fallback match from mock data or default demo business
@@ -79,31 +86,46 @@ export default async function SalonPublicPage({ params }: PageProps) {
     { day: 'Воскресенье', hours: 'Выходной' },
   ];
 
+  const settings = tenantData?.settings || {};
+
+  const displayServices = realServices.length > 0
+    ? realServices.map((s) => ({
+        id: s.id,
+        name: s.name,
+        category: 'Услуги',
+        price: s.price,
+        duration: s.duration_minutes,
+        deposit: s.deposit_amount || 0,
+        popular: false,
+      }))
+    : defaultServices;
+
   const business = {
     name: tenantData?.name || mockMatch?.name || (slug === 'avenue' ? 'Avenue Beauty' : 'Студия красоты Riva'),
-    type: (tenantData?.is_solo_master ? 'solo' : mockMatch?.type) || 'salon',
-    specialization: mockMatch?.specialization || 'Премиальный ногтевой сервис и эстетический уход',
+    type: (tenantData ? (tenantData.is_solo_master ? 'solo' : 'salon') : mockMatch?.type) || 'salon',
+    specialization: settings.specialization || mockMatch?.specialization || (tenantData?.is_solo_master ? 'Частный мастер' : 'Салон красоты'),
     description:
+      settings.description ||
       mockMatch?.description ||
-      'Уютное камерное пространство в центре города. Высочайшие стандарты стерилизации, премиальные материалы Luxio и Davines, заботливые мастера.',
-    address: 'Lara Cd. No:123, Antalya',
-    rating: mockMatch?.rating || 4.9,
-    reviewsCount: mockMatch?.reviews || 128,
-    deposit: mockMatch?.deposit || 300,
+      'Уютное камерное пространство в центре города. Высочайшие стандарты качества и заботливые мастера.',
+    address: settings.address || 'Lara Cd. No:123, Antalya',
+    rating: settings.rating || mockMatch?.rating || 5.0,
+    reviewsCount: settings.reviewsCount || mockMatch?.reviews || 1,
+    deposit: settings.depositAmount || mockMatch?.deposit || 0,
     portfolio:
-      mockMatch?.portfolio && mockMatch.portfolio.length > 0
+      Array.isArray(settings.portfolioImages) && settings.portfolioImages.length > 0
+        ? settings.portfolioImages
+        : mockMatch?.portfolio && mockMatch.portfolio.length > 0
         ? mockMatch.portfolio
         : [
             'https://images.unsplash.com/photo-1600948836101-f9ffda59d250?auto=format&fit=crop&w=1000&q=80',
             'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1000&q=80',
-            'https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=1000&q=80',
           ],
     avatar:
+      settings.avatar ||
       mockMatch?.avatar ||
-      (mockMatch?.type === 'solo'
-        ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80'
-        : undefined),
-    services: defaultServices,
+      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80',
+    services: displayServices,
     workingHours: defaultHours,
   };
 
@@ -128,50 +150,36 @@ export default async function SalonPublicPage({ params }: PageProps) {
       {/* Top Header / Navigation Bar */}
       <header className="sticky top-0 z-40 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#EAE3D9]">
         <div className="max-w-[1140px] mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
-          {/* Back to Catalog Button */}
           <Link
             href="/"
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-[#EAE3D9] hover:bg-[#F4EFE6] hover:border-[#C59A87] text-sm font-medium text-[#2A2421] transition-all shadow-xs group cursor-pointer"
+            className="inline-flex items-center gap-2 text-sm font-medium text-[#7A7571] hover:text-[#2A2421] transition-colors group cursor-pointer"
           >
-            <ArrowLeft className="w-4 h-4 text-[#7A7571] group-hover:text-[#2A2421] transition-colors" />
-            <span>В каталог</span>
+            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+            <span>Все салоны</span>
           </Link>
 
-          {/* Logo Monogram */}
           <Link href="/" className="flex items-center gap-2">
             <span className="font-serif text-xl sm:text-2xl font-bold tracking-[0.2em] text-[#2A2421]">
-              RIVA
+              R I V A
             </span>
           </Link>
 
-          {/* Action CTAs */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {isOwner && (
-              <Link
-                href={`/${slug}/dashboard`}
-                className="h-10 px-3.5 sm:px-4 rounded-xl bg-[#2A2421] hover:bg-[#3E352F] text-white text-xs sm:text-sm font-medium inline-flex items-center justify-center transition-colors shadow-xs"
-              >
-                Панель управления
-              </Link>
-            )}
-            <a
-              href="#services"
-              className="h-10 px-4 sm:px-5 rounded-xl bg-[#C59A87] hover:bg-[#B58976] text-white text-xs sm:text-sm font-medium inline-flex items-center justify-center transition-colors shadow-xs"
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/${slug}#booking`}
+              className="hidden sm:inline-flex h-9 sm:h-10 px-4 sm:px-5 rounded-xl bg-[#C59A87] hover:bg-[#B58976] text-white text-xs sm:text-sm font-medium items-center justify-center transition-colors shadow-xs"
             >
-              Записаться
-            </a>
+              Записаться онлайн
+            </Link>
           </div>
         </div>
       </header>
 
-      {/* Main Content Container */}
-      <main className="max-w-[1140px] mx-auto px-4 sm:px-6 py-6 sm:py-10">
-        
-        {/* Business Hero Overview */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-10 sm:mb-12">
-          
-          {/* Left: Gallery */}
-          <div className="lg:col-span-7 rounded-3xl overflow-hidden border border-[#EAE3D9] bg-white shadow-xs">
+      {/* Hero & Media Section */}
+      <section className="max-w-[1140px] mx-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Gallery View */}
+          <div className="lg:col-span-7">
             <CardGallery
               images={business.portfolio}
               alt={business.name}
@@ -179,120 +187,150 @@ export default async function SalonPublicPage({ params }: PageProps) {
             />
           </div>
 
-          {/* Right: Info Card */}
+          {/* Salon / Master Info Block */}
           <div className="lg:col-span-5 flex flex-col gap-5">
-            <div className="bg-white border border-[#EAE3D9] rounded-3xl p-6 sm:p-7 shadow-xs">
+            <div>
               <div className="flex items-center gap-2 mb-2">
-                <div className="flex items-center gap-1 bg-[#F4EFE6] px-2.5 py-1 rounded-lg text-xs font-medium text-[#2A2421]">
-                  <Star className="w-3.5 h-3.5 fill-[#2A2421] text-[#2A2421] credit-card" />
-                  <span>{business.rating}</span>
-                </div>
-                <span className="text-xs font-normal text-[#7A7571]">
-                  ({business.reviewsCount} отзывов)
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#8A9580]/15 text-[#8A9580] uppercase tracking-wider">
+                  {business.type === 'solo' ? 'Частный кабинет' : 'Студия & Салон'}
                 </span>
-                <span className="text-xs font-normal text-[#C59A87] ml-auto">
-                  100% гарантия чистоты
+                <span className="text-xs text-[#7A7571] flex items-center gap-1">
+                  <Shield className="w-3.5 h-3.5 text-[#8A9580]" />
+                  Проверенный профиль
                 </span>
               </div>
-
-              <h1 className="font-serif text-2xl sm:text-3xl font-medium text-[#2A2421] tracking-tight mb-2">
+              <h1 className="font-serif text-3xl sm:text-4xl font-normal tracking-tight text-[#2A2421] mb-2">
                 {business.name}
               </h1>
-
-              <p className="text-xs sm:text-sm text-[#7A7571] font-normal mb-4">
+              <p className="text-sm font-medium text-[#C59A87]">
                 {business.specialization}
               </p>
+            </div>
 
-              <div className="flex items-start gap-2 text-xs sm:text-sm text-[#5E544C] mb-4">
-                <MapPin className="w-4 h-4 text-[#C59A87] shrink-0 mt-0.5" />
-                <span>{business.address}</span>
+            {/* Quick Stats: Rating, Reviews, Address */}
+            <div className="flex flex-wrap items-center gap-4 py-3 border-y border-[#EAE3D9] text-sm">
+              <div className="flex items-center gap-1.5 font-medium">
+                <Star className="w-4 h-4 fill-[#C59A87] text-[#C59A87]" />
+                <span className="font-semibold">{business.rating}</span>
+                <span className="text-[#7A7571]">({business.reviewsCount} отзывов)</span>
               </div>
-
-              <p className="text-xs sm:text-sm text-[#7A7571] font-normal leading-relaxed mb-6 pt-4 border-t border-[#F0ECE4]">
-                {business.description}
-              </p>
-
-              <div className="p-3.5 rounded-2xl bg-[#F4EFE6]/60 border border-[#EAE3D9] flex items-center gap-3">
-                <Shield className="w-5 h-5 text-[#C59A87] shrink-0" />
-                <div className="text-xs text-[#5E544C] leading-snug">
-                  <span className="font-medium text-[#2A2421]">Предоплата {business.deposit} TL.</span>{' '}
-                  Бесплатная отмена за 24 часа до визита.
-                </div>
+              <span className="text-[#EAE3D9]">•</span>
+              <div className="flex items-center gap-1 text-[#7A7571]">
+                <MapPin className="w-4 h-4 text-[#7A7571]" />
+                <span>{business.address}</span>
               </div>
             </div>
 
+            {/* About text */}
+            <p className="text-sm text-[#5E544C] leading-relaxed">
+              {business.description}
+            </p>
+
             {/* Working Hours Card */}
-            <div className="bg-white border border-[#EAE3D9] rounded-3xl p-6 shadow-xs">
-              <div className="flex items-center gap-2 mb-4 font-serif text-base font-medium text-[#2A2421]">
-                <Clock className="w-4 h-4 text-[#C59A87]" />
-                <span>Режим работы</span>
+            <div className="bg-[#F4EFE6]/60 rounded-2xl p-4 border border-[#EAE3D9]">
+              <div className="flex items-center gap-2 mb-2.5 text-xs font-semibold uppercase tracking-wider text-[#7A7571]">
+                <Clock className="w-3.5 h-3.5" />
+                <span>График работы</span>
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5 text-xs sm:text-sm">
                 {business.workingHours.map((wh, idx) => (
-                  <div key={idx} className="flex justify-between text-xs sm:text-sm text-[#5E544C]">
-                    <span className="font-normal text-[#7A7571]">{wh.day}</span>
+                  <div key={idx} className="flex justify-between items-center text-[#5E544C]">
+                    <span>{wh.day}</span>
                     <span className="font-medium text-[#2A2421]">{wh.hours}</span>
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* Deposit Pill info */}
+            <div className="flex items-center justify-between p-3.5 bg-white rounded-2xl border border-[#EAE3D9] text-xs sm:text-sm">
+              <span className="text-[#5E544C]">Обязательный задаток при бронировании:</span>
+              <span className="font-bold text-[#C59A87]">{business.deposit} TL</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Services & Booking section */}
+      <section id="booking" className="max-w-[1140px] mx-auto px-4 sm:px-6 py-10 border-t border-[#EAE3D9]">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+          <div>
+            <h2 className="font-serif text-2xl sm:text-3xl font-medium tracking-tight text-[#2A2421]">
+              Прайс-лист и онлайн-запись
+            </h2>
+            <p className="text-sm text-[#7A7571] mt-1">
+              Выберите желаемую услугу для бронирования даты и времени
+            </p>
           </div>
         </div>
 
-        {/* Services Section */}
-        <section id="services" className="mb-12">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="font-serif text-2xl font-medium text-[#2A2421] tracking-tight">
-              Услуги и стоимость
-            </h2>
-            <span className="text-xs font-normal text-[#7A7571]">
-              Всего: {business.services.length}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {business.services.map((srv) => (
-              <div
-                key={srv.id}
-                className="bg-white border border-[#EAE3D9] hover:border-[#C59A87] rounded-3xl p-5 sm:p-6 transition-all shadow-xs flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="text-[11px] font-medium uppercase tracking-wider text-[#C59A87] bg-[#F4EFE6] px-2.5 py-0.5 rounded-full">
-                      {srv.category}
+        {/* Services List */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {business.services.map((service) => (
+            <div
+              key={service.id}
+              className="bg-white rounded-2xl p-5 border border-[#EAE3D9] hover:border-[#C59A87] transition-all flex flex-col justify-between shadow-[0_2px_8px_rgba(42,36,33,0.02)] group"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[11px] font-semibold text-[#8A9580] uppercase tracking-wider">
+                      {service.category}
                     </span>
-                    {srv.popular && (
-                      <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    {service.popular && (
+                      <span className="text-[10px] bg-[#C59A87]/15 text-[#C59A87] px-2 py-0.5 rounded-full font-medium">
                         Популярное
                       </span>
                     )}
                   </div>
-                  <h3 className="font-serif text-lg font-medium text-[#2A2421] mb-1">
-                    {srv.name}
+                  <h3 className="font-medium text-base text-[#2A2421] group-hover:text-[#C59A87] transition-colors">
+                    {service.name}
                   </h3>
-                  <div className="flex items-center gap-1.5 text-xs text-[#7A7571] mb-4">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>{srv.duration} мин</span>
+                  <div className="flex items-center gap-3 mt-2 text-xs text-[#7A7571]">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5" />
+                      {service.duration} мин
+                    </span>
+                    <span>•</span>
+                    <span>Задаток: {service.deposit} TL</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-[#F0ECE4]">
-                  <div className="font-serif text-xl font-medium text-[#2A2421]">
-                    {srv.price} TL
-                  </div>
-                  <a
-                    href="#services"
-                    className="h-9 px-4 rounded-xl bg-[#2A2421] hover:bg-[#C59A87] text-white text-xs sm:text-sm font-medium inline-flex items-center justify-center transition-colors cursor-pointer"
-                  >
-                    Записаться
-                  </a>
+                <div className="text-right shrink-0">
+                  <span className="text-lg font-bold text-[#2A2421] block">
+                    {service.price} TL
+                  </span>
                 </div>
               </div>
-            ))}
-          </div>
-        </section>
 
-      </main>
+              <div className="mt-4 pt-4 border-t border-[#F4EFE6] flex items-center justify-between">
+                <span className="text-xs text-[#7A7571]">
+                  Гарантированная бронь слота
+                </span>
+                <button
+                  className="px-4 py-2 rounded-xl bg-[#C59A87] hover:bg-[#B58976] text-white text-xs font-semibold transition-colors cursor-pointer shadow-xs"
+                  onClick={() => {
+                    alert(`Запись на услугу: "${service.name}". Для записи свяжитесь с мастером или оформите заявку в лист ожидания.`);
+                  }}
+                >
+                  Выбрать время
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="mt-16 border-t border-[#EAE3D9] bg-white/50 py-10">
+        <div className="max-w-[1140px] mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#7A7571]">
+          <p>© {new Date().getFullYear()} {business.name}. Все права защищены.</p>
+          <div className="flex items-center gap-6">
+            <Link href="/" className="hover:text-[#2A2421] transition-colors">Главная RIVA</Link>
+            <Link href="/dashboard" className="hover:text-[#2A2421] transition-colors">Кабинет мастера</Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
