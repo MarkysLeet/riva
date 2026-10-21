@@ -1,0 +1,138 @@
+--- src/app/[slug]/dashboard/DashboardClient.tsx
++++ src/app/[slug]/dashboard/DashboardClient.tsx
+@@ -1,7 +1,6 @@
+ 'use client';
+
+ import React, { useState } from 'react';
+-import { SidebarNav } from '@/components/schedule/SidebarNav';
+ import { ScheduleView } from '@/components/schedule/ScheduleView';
+ import { AppointmentDetailsSidebar } from '@/components/schedule/AppointmentDetailsSidebar';
+ import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
+@@ -11,16 +10,67 @@
+   type AppointmentStatus,
+   type WaitlistEntry,
++  type Specialist
+ } from '@/components/schedule/mockScheduleData';
+ import Link from 'next/link';
+ import { Calendar, UserPlus, Phone, Trash2 } from 'lucide-react';
++import { updateAppointmentStatus, updateAppointmentNotes } from '@/app/actions/appointments';
+
+-export default function DashboardPage() {
+-  const [appointments, setAppointments] = useState<Appointment[]>(mockScheduleData);
++export default function DashboardClient({ tenantSlug, tenantId, specialists, appointmentsRaw, waitlistRaw }: any) {
++
++  // Map specialists
++  const mappedSpecialists: Specialist[] = specialists.map((s: any) => ({
++    id: s.id,
++    name: s.name,
++    role: s.role === 'owner' ? 'Владелец' : 'Мастер',
++    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80',
++  }));
++
++  // Map appointments
++  const mappedAppointments: Appointment[] = appointmentsRaw.map((apt: any) => {
++    const startDate = new Date(apt.start_time);
++    const endDate = new Date(apt.end_time);
++    const startHourDecimal = startDate.getHours() + startDate.getMinutes() / 60;
++
++    let durationMinutes = (endDate.getTime() - startDate.getTime()) / (1000 * 60);
++    if (isNaN(durationMinutes) || durationMinutes <= 0) durationMinutes = 60;
++
++    let mappedStatus: AppointmentStatus = apt.status as AppointmentStatus;
++    if (apt.status === 'pending_deposit') mappedStatus = 'pending';
++
++    const isDepositPaid = apt.status !== 'pending_deposit' && (
++      apt.status === 'confirmed' || apt.status === 'completed' || apt.status === 'in_progress'
++    );
++
++    const specialistName = specialists.find((s: any) => s.id === apt.master_id)?.name || 'Не назначен';
++    const serviceName = apt.services?.name || 'Услуга';
++
++    return {
++      id: apt.id,
++      clientId: apt.client_id || apt.id,
++      client: {
++        id: apt.client_id || apt.id,
++        name: apt.client_name,
++        shortName: apt.client_name,
++        phone: apt.client_phone || '',
++        metrics: { loyaltyRate: 100, attendanceRate: 100, rating: 100 },
++        notes: apt.client_profiles?.internal_notes || apt.internal_notes || '',
++        totalVisits: 1
++      },
++      serviceName: serviceName,
++      startTime: startDate.toTimeString().slice(0, 5),
++      endTime: endDate.toTimeString().slice(0, 5),
++      startHourDecimal,
++      durationMinutes,
++      specialistId: apt.master_id,
++      specialistName,
++      price: 0,
++      depositAmount: 0,
++      isDepositPaid,
++      status: mappedStatus,
++      pastVisits: []
++    };
++  });
++
++  const [appointments, setAppointments] = useState<Appointment[]>(mappedAppointments);
+   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+   const [currentView, setCurrentView] = useState<'schedule' | 'waitlist'>('schedule');
+
+   // Waitlist state
+-  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>(mockWaitlistData);
++  const mappedWaitlist: WaitlistEntry[] = waitlistRaw.map((wl: any) => ({
++    id: wl.id,
++    clientName: wl.client_name,
++    phone: wl.client_phone,
++    serviceName: wl.services?.name || 'Услуга',
++    desiredTime: wl.desired_date,
++    status: wl.status,
++    createdAt: wl.created_at,
++  }));
++  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>(mappedWaitlist);
+   const [isAddWaitlistOpen, setIsAddWaitlistOpen] = useState(false);
+   const [newWaitName, setNewWaitName] = useState('');
+@@ -32,16 +82,26 @@
+
+   // Status transitions
+-  const handleStatusChange = (appointmentId: string, newStatus: AppointmentStatus) => {
++  const handleStatusChange = async (appointmentId: string, newStatus: AppointmentStatus) => {
++    // Map pending back to pending_deposit for DB if needed
++    let dbStatus = newStatus as string;
++    if (newStatus === 'pending') dbStatus = 'pending_deposit';
++    await updateAppointmentStatus(appointmentId, dbStatus, tenantSlug);
++
+     setAppointments((prev) =>
+       prev.map((apt) => (apt.id === appointmentId ? { ...apt, status: newStatus } : apt))
+     );
+   };
+
+   // Notes update
+-  const handleSaveNotes = (appointmentId: string, notes: string) => {
++  const handleSaveNotes = async (appointmentId: string, notes: string) => {
++    const apt = appointments.find(a => a.id === appointmentId);
++    if (apt) {
++      await updateAppointmentNotes(appointmentId, apt.clientId, tenantId, notes, tenantSlug);
++    }
++
+     setAppointments((prev) =>
+       prev.map((apt) =>
+         apt.id === appointmentId
+           ? {
+@@ -104,8 +164,6 @@
+         }
+       >
+-        <SidebarNav />
+-
+         <div className="flex-1 overflow-auto flex flex-col h-full bg-[#FDFBF7]">
+           {/* Top Header */}
+           <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-[#EAE3D9] h-16 sm:h-20 px-4 sm:px-8 flex items-center justify-between shrink-0">
+@@ -165,6 +223,8 @@
+                 selectedAppointmentId={selectedAppointmentId}
+                 onSelectAppointment={setSelectedAppointmentId}
+                 onAddAppointment={(apt) => setAppointments((prev) => [...prev, apt])}
++                specialists={mappedSpecialists}
++                tenantSlug={tenantSlug}
+               />
+             ) : (

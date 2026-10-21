@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -5,8 +6,8 @@ import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { AppointmentCard } from './AppointmentCard';
 import { NewAppointmentModal } from './NewAppointmentModal';
 import {
-  MOCK_SPECIALISTS,
   type Appointment,
+  type Specialist,
 } from './mockScheduleData';
 import { cn } from '@/lib/utils';
 
@@ -16,6 +17,8 @@ interface ScheduleViewProps {
   onSelectAppointment: (id: string | null) => void;
   onAddAppointment: (appointment: Appointment) => void;
   className?: string;
+  specialists: Specialist[];
+  tenantSlug: string;
 }
 
 export function ScheduleView({
@@ -24,6 +27,8 @@ export function ScheduleView({
   onSelectAppointment,
   onAddAppointment,
   className,
+  specialists,
+  tenantSlug
 }: ScheduleViewProps) {
   const [selectedMasterFilter, setSelectedMasterFilter] = useState<string>('all');
   const [currentDateOffset, setCurrentDateOffset] = useState<number>(0);
@@ -56,8 +61,8 @@ export function ScheduleView({
 
   const displayedSpecialists =
     selectedMasterFilter === 'all'
-      ? MOCK_SPECIALISTS
-      : MOCK_SPECIALISTS.filter((s) => s.id === selectedMasterFilter);
+      ? specialists
+      : specialists.filter((s: Specialist) => s.id === selectedMasterFilter);
 
   const handleCellClick = (hour: number, specialistId?: string) => {
     setModalSlot({ hour, specialistId });
@@ -92,9 +97,9 @@ export function ScheduleView({
                   : "text-[#5E544C] hover:text-[#2A2421]"
               )}
             >
-              Все мастера ({MOCK_SPECIALISTS.length})
+              Все мастера ({specialists.length})
             </button>
-            {MOCK_SPECIALISTS.map((s) => (
+            {specialists.map((s: Specialist) => (
               <button
                 key={s.id}
                 onClick={() => setSelectedMasterFilter(s.id)}
@@ -155,7 +160,7 @@ export function ScheduleView({
           
           {/* Multi-specialist Column Headers (if viewing all masters) */}
           <div className="flex items-center pl-[60px] pb-3 border-b border-[#EAE3D9] mb-2">
-            {displayedSpecialists.map((spec) => (
+            {displayedSpecialists.map((spec: Specialist) => (
               <div
                 key={spec.id}
                 style={{ width: `${columnWidth}px` }}
@@ -194,7 +199,7 @@ export function ScheduleView({
 
                 {/* Clickable Column Slots for Creating Appointments */}
                 <div className="flex-1 flex h-full">
-                  {displayedSpecialists.map((spec) => (
+                  {displayedSpecialists.map((spec: Specialist) => (
                     <div
                       key={spec.id}
                       style={{ width: `${columnWidth}px` }}
@@ -215,7 +220,7 @@ export function ScheduleView({
             {/* Appointment Cards Overlay */}
             <div className="absolute top-0 left-[50px] right-0 bottom-0 pointer-events-none">
               <div className="relative w-full h-full pointer-events-auto">
-                {displayedSpecialists.map((spec, specIndex) => {
+                {displayedSpecialists.map((spec: Specialist, specIndex: number) => {
                   const specAppointments = appointments.filter(
                     (a) => a.specialistId === spec.id || (selectedMasterFilter !== 'all' && !a.specialistId)
                   );
@@ -251,7 +256,8 @@ export function ScheduleView({
         onClose={() => setIsModalOpen(false)}
         selectedHour={modalSlot.hour}
         selectedSpecialistId={modalSlot.specialistId}
-        specialists={MOCK_SPECIALISTS}
+        specialists={specialists}
+        tenantSlug={tenantSlug}
         onAddAppointment={onAddAppointment}
       />
     </div>

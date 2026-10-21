@@ -8,14 +8,15 @@ import { cn } from '@/lib/utils';
 
 interface SidebarNavProps {
   className?: string;
+  currentSlug: string;
 }
 
-export function SidebarNav({ className }: SidebarNavProps) {
+export function SidebarNav({ className, currentSlug }: SidebarNavProps) {
   const pathname = usePathname();
 
-  const isCalendar = pathname === '/dashboard';
-  const isServices = pathname?.startsWith('/dashboard/services');
-  const isSettings = pathname?.startsWith('/dashboard/settings');
+  const isCalendar = pathname === `/${currentSlug}/dashboard`;
+  const isServices = pathname?.startsWith(`/${currentSlug}/dashboard/services`);
+  const isSettings = pathname?.startsWith(`/${currentSlug}/dashboard/settings`);
 
   return (
     <aside
@@ -25,7 +26,7 @@ export function SidebarNav({ className }: SidebarNavProps) {
       )}
     >
       {/* Brand Monogram Crest */}
-      <Link href="/dashboard" className="flex flex-col items-center mb-8 px-2 cursor-pointer">
+      <Link href={`/${currentSlug}/dashboard`} className="flex flex-col items-center mb-8 px-2 cursor-pointer">
         <svg
           viewBox="0 0 48 54"
           className="w-11 h-12 text-[#684C38] fill-current drop-shadow-sm mb-1"
@@ -45,7 +46,7 @@ export function SidebarNav({ className }: SidebarNavProps) {
       <nav className="w-full flex-1 flex flex-col space-y-3">
         {/* 1. Календарь */}
         <Link
-          href="/dashboard"
+          href={`/${currentSlug}/dashboard`}
           className={cn(
             "w-full relative flex flex-col items-center justify-center py-3.5 px-1 transition-colors group cursor-pointer",
             isCalendar ? "bg-[#DFD5C6] text-[#28221D]" : "text-[#5E544C] hover:text-[#28221D] hover:bg-[#EAE2D5]/50"
@@ -71,7 +72,7 @@ export function SidebarNav({ className }: SidebarNavProps) {
 
         {/* 3. Услуги */}
         <Link
-          href="/dashboard/services"
+          href={`/${currentSlug}/dashboard/services`}
           className={cn(
             "w-full relative flex flex-col items-center justify-center py-3.5 px-1 transition-colors group cursor-pointer",
             isServices ? "bg-[#DFD5C6] text-[#28221D]" : "text-[#5E544C] hover:text-[#28221D] hover:bg-[#EAE2D5]/50"
@@ -94,7 +95,7 @@ export function SidebarNav({ className }: SidebarNavProps) {
 
         {/* 4. Настройки */}
         <Link
-          href="/dashboard/settings"
+          href={`/${currentSlug}/dashboard/settings`}
           className={cn(
             "w-full relative flex flex-col items-center justify-center py-3.5 px-1 transition-colors group cursor-pointer",
             isSettings ? "bg-[#DFD5C6] text-[#28221D]" : "text-[#5E544C] hover:text-[#28221D] hover:bg-[#EAE2D5]/50"

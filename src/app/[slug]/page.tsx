@@ -244,7 +244,7 @@ export default async function SalonPublicPage({ params }: PageProps) {
                     {srv.price} TL
                   </div>
                   <Link
-                    href={`/dashboard?service=${srv.id}`}
+                    href={`/${slug}/dashboard?service=${srv.id}`}
                     className="h-9 px-4 rounded-xl bg-[#2A2421] hover:bg-[#C59A87] text-white text-xs sm:text-sm font-medium inline-flex items-center justify-center transition-colors cursor-pointer"
                   >
                     Записаться

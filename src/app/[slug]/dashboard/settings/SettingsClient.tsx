@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { SidebarNav } from '@/components/schedule/SidebarNav';
+
 import { CardGallery } from '@/components/card-gallery';
 import { Star, CreditCard, Sparkles, HelpCircle, ArrowRight, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -35,14 +36,14 @@ const INITIAL_DATA = {
   ]
 };
 
-export default function SettingsPage() {
-  const [formData, setFormData] = useState(INITIAL_DATA);
+export default function SettingsClient({ initialData, tenantSlug }: any) {
+  const [formData, setFormData] = useState(initialData);
   const [activeTab, setActiveTab] = useState<'general' | 'services' | 'schedule'>('general');
 
   // Computed Checkbox Progress
   const isNameFilled = formData.name.trim().length > 0;
-  const isServicesFilled = formData.services.some(s => s.isActive && s.price > 0);
-  const isScheduleFilled = formData.schedule.some(s => s.isWorking);
+  const isServicesFilled = formData.services.some((s: any) => s.isActive && s.price > 0);
+  const isScheduleFilled = formData.schedule.some((s: any) => s.isWorking);
   const isDepositFilled = formData.depositAmount >= 0;
   const isPhotosFilled = formData.portfolioImages.length > 0;
 
@@ -51,21 +52,21 @@ export default function SettingsPage() {
 
   const handlePublish = () => {
     if (canPublish) {
-      setFormData(prev => ({ ...prev, status: 'published' }));
+      setFormData((prev: any) => ({ ...prev, status: 'published' }));
     }
   };
 
   const handleScheduleChange = (dayIndex: number, field: string, value: string | number | boolean) => {
-    setFormData(prev => ({
+    setFormData((prev: any) => ({
       ...prev,
-      schedule: prev.schedule.map(s => s.day === dayIndex ? { ...s, [field]: value } : s)
+      schedule: prev.schedule.map((s: any) => s.day === dayIndex ? { ...s, [field]: value } : s)
     }));
   };
 
   return (
     <div className="flex h-screen bg-[#FAF7F2] overflow-hidden font-sans">
       {/* Desktop Left Sidebar */}
-      <SidebarNav className="hidden lg:flex" />
+
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto scrollbar-none relative">
@@ -256,8 +257,8 @@ export default function SettingsPage() {
                         value={formData.portfolioImages.join(', ')}
                         onChange={e => {
                           const val = e.target.value;
-                          const urls = val.split(',').map(s => s.trim()).filter(Boolean);
-                          setFormData(prev => ({ ...prev, portfolioImages: urls }));
+                          const urls = val.split(',').map((s: any) => s.trim()).filter(Boolean);
+                          setFormData((prev: any) => ({ ...prev, portfolioImages: urls }));
                         }}
                         className="w-full h-24 p-3 bg-white border border-[#EAE3D9] rounded-xl text-sm text-[#2A2421] font-normal placeholder:text-[#827771] focus:outline-none focus:border-[#C59A87] focus:ring-1 focus:ring-[#C59A87] transition-colors resize-none"
                         placeholder="https://example.com/photo1.jpg, https://example.com/photo2.jpg"
@@ -271,7 +272,7 @@ export default function SettingsPage() {
                     <p className="text-sm text-[#7A7571] mb-2">
                       Настройте регулярные рабочие часы. Перерывы и исключения можно настроить в календаре.
                     </p>
-                    {formData.schedule.map((day) => (
+                    {formData.schedule.map((day: any) => (
                       <div key={day.day} className="flex items-center justify-between p-3.5 bg-[#FAF7F2] border border-[#EAE3D9] rounded-xl">
                         <div className="flex items-center gap-3 w-28">
                           <input
@@ -336,7 +337,7 @@ export default function SettingsPage() {
                       <span className="text-xs font-medium uppercase tracking-wider text-[#7A7571]">
                         Текущий каталог ({formData.services.length})
                       </span>
-                      {formData.services.map((service) => (
+                      {formData.services.map((service: any) => (
                         <div key={service.id} className="p-4 bg-white border border-[#EAE3D9] rounded-xl flex items-center justify-between">
                           <div>
                             <div className="font-medium text-sm text-[#2A2421]">{service.name}</div>
@@ -400,7 +401,7 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-[#2A2421] min-w-0">
                       <CreditCard className="w-4 h-4 text-[#7A7571] shrink-0" />
                       <span className="truncate">
-                        от {formData.services.find(s => s.isActive)?.price || 0} TL
+                        от {formData.services.find((s: any) => s.isActive)?.price || 0} TL
                       </span>
                     </div>
                   )}
