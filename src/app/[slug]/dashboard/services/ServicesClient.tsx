@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SidebarNav } from '@/components/schedule/SidebarNav';
+
 import { Plus, Edit3, Trash2, Clock, CreditCard, User, Sparkles, Check, X } from 'lucide-react';
+import { addService, updateService, toggleServiceStatus } from '@/app/actions/services';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export interface ServiceItem {
@@ -71,8 +72,8 @@ const INITIAL_SERVICES: ServiceItem[] = [
 
 const CATEGORIES = ['Все услуги', 'Ногтевой сервис', 'Стрижки и укладки', 'Брови и ресницы', 'Уход и SPA'];
 
-export default function ServicesPage() {
-  const [services, setServices] = useState<ServiceItem[]>(INITIAL_SERVICES);
+export default function ServicesClient({ initialServices, tenantSlug }: { initialServices: ServiceItem[], tenantSlug: string }) {
+  const [services, setServices] = useState<ServiceItem[]>(initialServices);
   const [selectedCategory, setSelectedCategory] = useState<string>('Все услуги');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<ServiceItem | null>(null);
@@ -126,20 +127,35 @@ export default function ServicesPage() {
     setIsModalOpen(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return;
 
-    if (editingService) {
-      setServices(prev => prev.map(s => s.id === editingService.id ? { ...form, id: editingService.id } : s));
-    } else {
-      const newService: ServiceItem = {
-        ...form,
-        id: `srv-${Date.now()}`,
-      };
-      setServices(prev => [newService, ...prev]);
+    try {
+      if (editingService) {
+        await updateService(editingService.id, {
+          name: form.name,
+          category: form.category,
+          price: form.price,
+          duration_minutes: form.durationMinutes,
+        }, tenantSlug);
+        setServices(prev => prev.map(s => s.id === editingService.id ? { ...form, id: editingService.id } : s));
+      } else {
+        await addService({
+          tenantSlug,
+          name: form.name,
+          category: form.category,
+          price: form.price,
+          duration_minutes: form.durationMinutes,
+        });
+        // We can just rely on the server revalidation, but optimistic update is nice
+        setServices(prev => [{ ...form, id: `temp-${Date.now()}` }, ...prev]);
+      }
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert('Ошибка при сохранении услуги');
     }
-    setIsModalOpen(false);
   };
 
   const handleDelete = (id: string) => {
@@ -151,9 +167,9 @@ export default function ServicesPage() {
   };
 
   return (
-    <div className="flex h-screen bg-[#FAF7F2] overflow-hidden font-sans">
+    <>
       {/* Desktop Left Navigation */}
-      <SidebarNav className="hidden lg:flex" />
+
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto scrollbar-none">
@@ -500,6 +516,6 @@ export default function ServicesPage() {
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }

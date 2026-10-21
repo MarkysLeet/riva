@@ -1,79 +1,72 @@
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { createAdminClient } from "@/lib/supabase/admin";
 
-export async function setupNewUser(user: { id: string; user_metadata?: Record<string, unknown> }) {
-  if (!user || !user.user_metadata) return null;
+export async function setupNewUser(user: { id: string; email?: string; user_metadata?: Record<string, unknown> }) {
+  if (!user) return null;
 
-  const metadata = user.user_metadata;
-  const role = metadata.role as 'client' | 'master' | 'salon';
+  const metadata = user.user_metadata || {};
+  const role = (metadata.role as 'client' | 'master' | 'salon') || 'salon';
 
-  if (role !== 'master' && role !== 'salon') {
-      return { success: true, role };
+  if (role === 'client') {
+    return { success: true, role };
   }
 
-  // Use service role key to bypass RLS for inserting tenant data
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) {
-      console.error("Missing SUPABASE_SERVICE_ROLE_KEY");
-      return { error: "Server configuration error" };
-  }
-
-  const supabaseAdmin = createSupabaseClient(supabaseUrl, serviceRoleKey);
+  // Always use admin client for provisioning to bypass RLS restrictions safely on the server
+  const db = createAdminClient();
 
   // Check if tenant_owner already exists for this user to avoid duplicate setup
-  const { data: existingOwner } = await supabaseAdmin
+  const { data: existingOwner } = await db
     .from("tenant_owners")
     .select("tenant_id")
     .eq("user_id", user.id)
-    .single();
+    .limit(1)
+    .maybeSingle();
 
-  if (existingOwner) {
-    // Return existing slug
-    const { data: existingTenant } = await supabaseAdmin
-        .from("tenants")
-        .select("slug")
-        .eq("id", existingOwner.tenant_id)
-        .single();
+  if (existingOwner?.tenant_id) {
+    const { data: existingTenant } = await db
+      .from("tenants")
+      .select("slug")
+      .eq("id", existingOwner.tenant_id)
+      .maybeSingle();
 
-    return { success: true, role, slug: existingTenant?.slug };
+    if (existingTenant?.slug) {
+      return { success: true, role, slug: existingTenant.slug };
+    }
   }
 
-  const name = (metadata.name as string) || "Новый пользователь";
+  const name =
+    (metadata.name as string) ||
+    (user.email ? user.email.split("@")[0] : "Мой салон");
   const isSoloMaster = role === "master";
 
-  let baseSlug = metadata.slug as string;
-  if (!baseSlug) {
-      baseSlug = name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)+/g, "");
-
-      if (!baseSlug) baseSlug = "studio";
-  }
+  let baseSlug = (metadata.slug as string) || (user.email ? user.email.split("@")[0].split("+")[0] : "studio");
+  baseSlug =
+    baseSlug
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)+/g, "") || "studio";
 
   let slug = baseSlug;
   let isUnique = false;
   let counter = 1;
 
   while (!isUnique) {
-    const { data: existing } = await supabaseAdmin
+    const { data: existing } = await db
       .from("tenants")
       .select("id")
       .eq("slug", slug)
-      .single();
+      .maybeSingle();
 
     if (!existing) {
       isUnique = true;
     } else {
-      slug = `${baseSlug}-${counter}`;
-      counter++;
+      slug = `${baseSlug}-${counter++}`;
     }
   }
 
   const phone = (metadata.phone as string) || null;
 
-  const { data: tenantData, error: tenantError } = await supabaseAdmin
+  const { data: tenantData, error: tenantError } = await db
     .from("tenants")
     .insert([
       {
@@ -81,37 +74,31 @@ export async function setupNewUser(user: { id: string; user_metadata?: Record<st
         name: name,
         phone: phone,
         is_solo_master: isSoloMaster,
+        settings: {},
       },
     ])
-    .select("id")
+    .select("id, slug")
     .single();
 
   if (tenantError || !tenantData) {
     return { error: tenantError?.message || "Ошибка создания профиля" };
   }
 
-  const { error: ownerError } = await supabaseAdmin.from("tenant_owners").insert([
+  await db.from("tenant_owners").insert([
     {
       tenant_id: tenantData.id,
       user_id: user.id,
     },
   ]);
 
-  if (ownerError) {
-    return { error: ownerError.message || "Ошибка назначения владельца" };
-  }
+  await db.from("masters").insert([
+    {
+      tenant_id: tenantData.id,
+      user_id: user.id,
+      name: name,
+      schedule_rules: {},
+    },
+  ]);
 
-  if (role === 'master') {
-      const { error: masterError } = await supabaseAdmin.from("masters").insert([
-          {
-              tenant_id: tenantData.id,
-              name: name,
-          }
-      ]);
-      if (masterError) {
-          console.error("Master insert error:", masterError);
-      }
-  }
-
-  return { success: true, role, slug };
+  return { success: true, role, slug: tenantData.slug };
 }

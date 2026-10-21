@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { X, Calendar } from 'lucide-react';
+import { createAppointment } from '@/app/actions/appointments';
 import type { Appointment, Specialist } from './mockScheduleData';
 
 interface NewAppointmentModalProps {
@@ -11,6 +12,7 @@ interface NewAppointmentModalProps {
   selectedSpecialistId?: string;
   specialists: Specialist[];
   onAddAppointment: (appointment: Appointment) => void;
+  tenantSlug: string;
 }
 
 export function NewAppointmentModal({
@@ -20,6 +22,7 @@ export function NewAppointmentModal({
   selectedSpecialistId,
   specialists,
   onAddAppointment,
+  tenantSlug
 }: NewAppointmentModalProps) {
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');

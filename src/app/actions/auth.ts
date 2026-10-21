@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { setupNewUser } from "@/lib/auth-helpers";
 
 export type RegistrationData = {
@@ -14,6 +15,7 @@ export type RegistrationData = {
 
 export async function registerTenant(data: RegistrationData) {
   const supabase = await createClient();
+  const adminDb = createAdminClient();
 
   const { email, password, name, type, phone, socials } = data;
   const isSoloMaster = type === "solo";
@@ -25,26 +27,25 @@ export async function registerTenant(data: RegistrationData) {
     .replace(/(^-|-$)+/g, "");
 
   if (!baseSlug) {
-      baseSlug = "studio";
+    baseSlug = "studio";
   }
 
-  // Very basic uniqueness check for slug
+  // Check uniqueness for slug using adminDb
   let slug = baseSlug;
   let isUnique = false;
   let counter = 1;
 
   while (!isUnique) {
-    const { data: existing } = await supabase
+    const { data: existing } = await adminDb
       .from("tenants")
       .select("id")
       .eq("slug", slug)
-      .single();
+      .maybeSingle();
 
     if (!existing) {
       isUnique = true;
     } else {
-      slug = `${baseSlug}-${counter}`;
-      counter++;
+      slug = `${baseSlug}-${counter++}`;
     }
   }
 
@@ -60,19 +61,20 @@ export async function registerTenant(data: RegistrationData) {
 
   const userId = authData.user.id;
 
-  // 2. Insert into tenants table
-  const { data: tenantData, error: tenantError } = await supabase
+  // 2. Insert into tenants table using adminDb to guarantee write access
+  const { data: tenantData, error: tenantError } = await adminDb
     .from("tenants")
     .insert([
       {
         slug: slug,
         name: name,
-        phone: phone,
+        phone: phone || null,
         social_networks: socials?.map((s) => s.url).filter(Boolean) || [],
         is_solo_master: isSoloMaster,
+        settings: {},
       },
     ])
-    .select("id")
+    .select("id, slug")
     .single();
 
   if (tenantError || !tenantData) {
@@ -80,18 +82,24 @@ export async function registerTenant(data: RegistrationData) {
   }
 
   // 3. Link owner to tenant
-  const { error: ownerError } = await supabase.from("tenant_owners").insert([
+  await adminDb.from("tenant_owners").insert([
     {
       tenant_id: tenantData.id,
       user_id: userId,
     },
   ]);
 
-  if (ownerError) {
-    return { error: ownerError.message || "Ошибка назначения владельца" };
-  }
+  // 4. Link specialist
+  await adminDb.from("masters").insert([
+    {
+      tenant_id: tenantData.id,
+      user_id: userId,
+      name: name,
+      schedule_rules: {},
+    },
+  ]);
 
-  return { success: true, tenantId: tenantData.id, slug };
+  return { success: true, tenantId: tenantData.id, slug: tenantData.slug };
 }
 
 export type PasswordlessMetadata = {
@@ -142,13 +150,13 @@ export async function verifyOtp(email: string, token: string) {
 
   const setupResult = await setupNewUser(data.user);
   if (setupResult?.error) {
-      return { error: setupResult.error };
+    console.error("setupNewUser non-fatal error:", setupResult.error);
   }
 
   return {
-      success: true,
-      user: data.user,
-      role: setupResult?.role,
-      slug: setupResult?.slug
+    success: true,
+    user: data.user,
+    role: setupResult?.role,
+    slug: setupResult?.slug,
   };
 }

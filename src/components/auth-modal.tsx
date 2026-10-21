@@ -188,11 +188,8 @@ export function AuthModal({ isOpen, onClose, initialTab = "login" }: AuthModalPr
         setErrorMsg(res.error);
       } else {
         onClose();
-        if (res.role === "master" || res.role === "salon") {
-          router.push(res.slug ? `/${res.slug}/admin` : "/dashboard");
-        } else {
-          router.push("/profile");
-        }
+        router.push("/dashboard");
+        router.refresh();
       }
     } catch {
       setErrorMsg("Ошибка при проверке кода. Попробуйте еще раз.");

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -14,10 +15,11 @@ import {
   MapPin,
   LogOut,
   Menu,
+  Sparkles,
+  Store,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Slider } from "@/components/ui/slider";
-import { MOCK_PLACES } from "@/lib/mock-data";
 import { AuthModal } from "@/components/auth-modal";
 import { CardGallery } from "@/components/card-gallery";
 import {
@@ -32,32 +34,138 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 const ALL_CATEGORIES = ["Маникюр", "Педикюр", "Брови", "Волосы", "Макияж"];
 
 export default function Home() {
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([
-    "Маникюр",
-    "Педикюр",
-  ]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [radius, setRadius] = useState<number>(5);
   const [priceMin, setPriceMin] = useState<number>(200);
   const [priceMax, setPriceMax] = useState<number>(1500);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authTab, setAuthTab] = useState<"login" | "register">("login");
   const [user, setUser] = useState<User | null>(null);
 
-  useEffect(() => {
-    const supabase = createClient();
-    if (!supabase) return;
+  const [places, setPlaces] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-    supabase.auth.getUser().then(({ data }) => {
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const auth = params.get("auth");
+      if (auth === "login") {
+        setAuthTab("login");
+        setIsAuthModalOpen(true);
+      } else if (auth === "register") {
+        setAuthTab("register");
+        setIsAuthModalOpen(true);
+      }
+    }
+
+    const supabase = createClient();
+    if (!supabase) {
+      setIsLoading(false);
+      return;
+    }
+    const client = supabase;
+
+    client.auth.getUser().then(({ data }) => {
       setUser(data?.user ?? null);
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = client.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
+
+    async function loadRealPlaces() {
+      setIsLoading(true);
+      try {
+        const { data: tenantsData, error: tenantsErr } = await client
+          .from("tenants")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (tenantsErr) {
+          console.error("Error fetching tenants:", tenantsErr);
+          setIsLoading(false);
+          return;
+        }
+
+        const { data: servicesData } = await client
+          .from("services")
+          .select("*")
+          .eq("is_active", true);
+
+        if (tenantsData) {
+          const mapped = tenantsData.map((tenant: any) => {
+            const tenantServices = (servicesData || []).filter(
+              (s: any) => s.tenant_id === tenant.id
+            );
+            const firstService = tenantServices[0];
+            const settings = tenant.settings || {};
+
+            return {
+              id: tenant.id,
+              slug: tenant.slug,
+              name: tenant.name || "Студия красоты",
+              type: tenant.is_solo_master ? "solo" : "salon",
+              specialization:
+                settings.specialization ||
+                (tenant.is_solo_master ? "Частный мастер" : "Салон красоты"),
+              rating: settings.rating || 5.0,
+              reviews: settings.reviewsCount || 1,
+              distance: settings.distance || 0.8,
+              description:
+                settings.description ||
+                (tenant.is_solo_master
+                  ? "Персональный мастер красоты. Индивидуальный подход и безупречный сервис."
+                  : "Современное бьюти-пространство. Высокие стандарты качества и комфорта."),
+              deposit:
+                settings.depositAmount ?? firstService?.deposit_amount ?? 200,
+              portfolio:
+                Array.isArray(settings.portfolioImages) &&
+                settings.portfolioImages.length > 0
+                  ? settings.portfolioImages
+                  : [
+                      "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=800&q=80",
+                      "https://images.unsplash.com/photo-1600948836101-f9ffda59d250?auto=format&fit=crop&w=800&q=80",
+                    ],
+              avatar:
+                settings.avatar ||
+                "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80",
+              badge:
+                settings.badge ||
+                (tenant.is_solo_master ? "Новый мастер" : "Новое пространство"),
+              slots: settings.slots || [
+                { time: "11:00", available: true, highlighted: true },
+                { time: "13:00", available: true },
+                { time: "15:30", available: true },
+                { time: "18:00", available: true },
+              ],
+              primaryService: firstService
+                ? {
+                    name: firstService.name,
+                    price: firstService.price,
+                    duration: firstService.duration_minutes,
+                  }
+                : {
+                    name: "Базовая услуга",
+                    price: 500,
+                    duration: 60,
+                  },
+            };
+          });
+          setPlaces(mapped);
+        }
+      } catch (err) {
+        console.error("Failed to load real places:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadRealPlaces();
 
     return () => {
       subscription.unsubscribe();
@@ -75,6 +183,17 @@ export default function Home() {
       prev.includes(id) ? prev.filter((fav) => fav !== id) : [...prev, id]
     );
   };
+
+  const filteredPlaces = places.filter((place) => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchName = place.name.toLowerCase().includes(q);
+      const matchSpec = place.specialization?.toLowerCase().includes(q);
+      const matchDesc = place.description?.toLowerCase().includes(q);
+      if (!matchName && !matchSpec && !matchDesc) return false;
+    }
+    return true;
+  });
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -155,6 +274,8 @@ export default function Home() {
               <Search className="w-4 h-4 text-[#7A7571] mr-3 shrink-0" />
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Поиск салонов, мастеров или услуг"
                 className="bg-transparent border-none outline-none w-full text-sm text-main placeholder:text-[#7A7571]"
               />
@@ -171,12 +292,13 @@ export default function Home() {
           <div className="flex items-center gap-2.5 sm:gap-3">
             {user ? (
               <div className="flex items-center gap-3">
-                <Link href="/dashboard" className="hidden sm:block">
-                  <button className="h-10 px-5 text-sm font-medium rounded-xl inline-flex items-center justify-center transition-colors cursor-pointer bg-[#C59A87] text-white hover:bg-[#B58976] shadow-xs">
-                    Личный кабинет
+                <Link href="/dashboard">
+                  <button className="h-9 sm:h-10 px-3 sm:px-5 text-xs sm:text-sm font-medium rounded-xl inline-flex items-center justify-center transition-colors cursor-pointer bg-[#C59A87] text-white hover:bg-[#B58976] shadow-xs">
+                    <span className="sm:hidden">Кабинет</span>
+                    <span className="hidden sm:inline">Личный кабинет</span>
                   </button>
                 </Link>
-                <Link href="/profile">
+                <Link href="/dashboard">
                   <Avatar className="h-9 w-9 sm:h-10 sm:w-10 border border-[#EAE3D9] cursor-pointer hover:border-[#C59A87] transition-colors">
                     <AvatarImage src={user.user_metadata?.avatar_url} />
                     <AvatarFallback className="bg-[#F4EFE6] text-main text-xs sm:text-sm font-medium">
@@ -190,12 +312,12 @@ export default function Home() {
                 </Link>
                 <button
                   onClick={async () => {
-                    const supabase = createClient();
-                    if (supabase) {
-                      await supabase.auth.signOut();
+                    const sb = createClient();
+                    if (sb) {
+                      await sb.auth.signOut();
                     }
                   }}
-                  className="text-[#7A7571] hover:text-main transition-colors p-2"
+                  className="text-[#7A7571] hover:text-main transition-colors p-2 cursor-pointer"
                   title="Выйти"
                 >
                   <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -235,6 +357,8 @@ export default function Home() {
             <Search className="w-4 h-4 text-[#7A7571] mr-2.5 shrink-0" />
             <input
               type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Салоны, мастера..."
               className="bg-transparent border-none outline-none w-full text-sm text-main placeholder:text-[#7A7571]"
             />
@@ -467,7 +591,18 @@ export default function Home() {
                 Салоны и мастера поблизости
               </h1>
               <p className="text-sm text-[#7A7571]">
-                Салоны и частные мастера в Анталье • 24 варианта
+                {isLoading ? (
+                  "Загрузка списка салонов и мастеров..."
+                ) : (
+                  <>
+                    Салоны и частные мастера в Анталье • {filteredPlaces.length}{" "}
+                    {filteredPlaces.length === 1
+                      ? "вариант"
+                      : filteredPlaces.length >= 2 && filteredPlaces.length <= 4
+                      ? "варианта"
+                      : "вариантов"}
+                  </>
+                )}
               </p>
             </div>
             {/* Quick aesthetic pill indicator */}
@@ -477,179 +612,231 @@ export default function Home() {
             </div>
           </div>
 
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
-            className="grid grid-cols-1 md:grid-cols-2 gap-6"
-          >
-            {MOCK_PLACES.map((place) => {
-              const isFav = favorites.includes(place.id);
-              const galleryImages =
-                place.portfolio && place.portfolio.length > 0
-                  ? place.portfolio
-                  : place.image
-                  ? [place.image]
-                  : place.avatar
-                  ? [place.avatar]
-                  : [];
-
-              const targetSlug = place.slug || place.id;
-
-              return (
-                <motion.div
-                  key={place.id}
-                  variants={itemVariants}
-                  className="bg-white rounded-2xl border border-[#EAE3D9] overflow-hidden flex flex-col justify-between shadow-[0_2px_12px_rgba(42,36,33,0.03)] hover:shadow-[0_8px_24px_rgba(42,36,33,0.06)] transition-shadow"
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-2xl border border-[#EAE3D9] p-6 animate-pulse flex flex-col gap-4 h-[380px]"
                 >
-                  {/* SALON CARD */}
-                  {place.type === "salon" ? (
-                    <div className="flex flex-col h-full justify-between">
-                      <div>
-                        {/* Interactive Work Gallery with Swipe & Dots */}
-                        <CardGallery
-                          images={galleryImages}
-                          alt={place.name}
-                          badge={place.badge}
-                          isFavorite={isFav}
-                          onFavoriteClick={() => toggleFavorite(place.id)}
-                        />
+                  <div className="w-full h-48 bg-[#F4EFE6] rounded-xl" />
+                  <div className="h-6 w-3/4 bg-[#F4EFE6] rounded-md" />
+                  <div className="h-4 w-1/2 bg-[#F4EFE6] rounded-md" />
+                </div>
+              ))}
+            </div>
+          ) : filteredPlaces.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-[#EAE3D9] p-12 text-center flex flex-col items-center justify-center">
+              <div className="w-14 h-14 rounded-2xl bg-[#FAF6F0] flex items-center justify-center text-[#C59A87] mb-4">
+                {places.length === 0 ? (
+                  <Store className="w-7 h-7" />
+                ) : (
+                  <Sparkles className="w-7 h-7" />
+                )}
+              </div>
+              <h3 className="font-serif text-2xl font-medium text-main mb-2">
+                {places.length === 0
+                  ? "Пока нет зарегистрированных салонов"
+                  : "По вашему запросу ничего не найдено"}
+              </h3>
+              <p className="text-sm text-[#7A7571] max-w-md mb-6">
+                {places.length === 0
+                  ? "Станьте первым специалистом на платформе! Создайте личный кабинет или салон и начните принимать записи."
+                  : "Попробуйте изменить поисковый запрос или сбросить фильтры."}
+              </p>
+              {places.length === 0 ? (
+                <button
+                  onClick={() => {
+                    setAuthTab("register");
+                    setIsAuthModalOpen(true);
+                  }}
+                  className="h-11 px-6 rounded-xl bg-[#C59A87] text-white text-sm font-medium hover:bg-[#B58976] transition-colors shadow-xs cursor-pointer"
+                >
+                  Зарегистрировать салон или кабинет
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedCategories([]);
+                  }}
+                  className="h-10 px-5 rounded-xl border border-[#EAE3D9] text-main text-sm font-medium hover:bg-[#FAF6F0] transition-colors cursor-pointer"
+                >
+                  Сбросить фильтры
+                </button>
+              )}
+            </div>
+          ) : (
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            >
+              {filteredPlaces.map((place) => {
+                const isFav = favorites.includes(place.id);
+                const galleryImages =
+                  place.portfolio && place.portfolio.length > 0
+                    ? place.portfolio
+                    : [place.avatar];
 
-                        <div className="p-5 pb-3">
-                          <Link href={`/${targetSlug}`}>
-                            <h2 className="font-serif text-xl font-medium text-main tracking-tight hover:text-[#C59A87] transition-colors cursor-pointer">
-                              {place.name}
-                            </h2>
-                          </Link>
-                          <div className="flex items-center gap-1.5 text-sm font-medium mt-1">
-                            <Star className="w-4 h-4 fill-main text-main" />
-                            <span className="text-main">{place.rating}</span>
-                            <span className="text-[#7A7571] font-normal">
-                              • {place.distance} км
-                            </span>
-                          </div>
-                          <p className="text-sm text-[#5E544C] mt-2 line-clamp-1">
-                            {place.description}
-                          </p>
+                const targetSlug = place.slug || place.id;
 
-                          {/* Slots */}
-                          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-3">
-                            {place.slots.map((slot, idx) => (
-                              <Link key={idx} href={`/${targetSlug}`}>
-                                <button
-                                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 cursor-pointer ${
-                                    slot.highlighted
-                                      ? "bg-[#C59A87] text-white shadow-xs"
-                                      : "bg-[#8A9580]/15 text-[#2A2421] hover:bg-[#8A9580]/25 border border-[#8A9580]/25"
-                                  }`}
-                                >
-                                  {slot.time}
-                                </button>
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
+                return (
+                  <motion.div
+                    key={place.id}
+                    variants={itemVariants}
+                    className="bg-white rounded-2xl border border-[#EAE3D9] overflow-hidden flex flex-col justify-between shadow-[0_2px_12px_rgba(42,36,33,0.03)] hover:shadow-[0_8px_24px_rgba(42,36,33,0.06)] transition-shadow"
+                  >
+                    {/* SALON CARD */}
+                    {place.type === "salon" ? (
+                      <div className="flex flex-col h-full justify-between">
+                        <div>
+                          {/* Interactive Work Gallery with Swipe & Dots */}
+                          <CardGallery
+                            images={galleryImages}
+                            alt={place.name}
+                            badge={place.badge}
+                            isFavorite={isFav}
+                            onFavoriteClick={() => toggleFavorite(place.id)}
+                          />
 
-                      {/* Footer */}
-                      <div className="px-5 pb-5 pt-3 border-t border-[#F0ECE4] flex items-center justify-between">
-                        <span className="text-sm font-medium text-main">
-                          Задаток: {place.deposit} TL
-                        </span>
-                        <Link href={`/${targetSlug}`}>
-                          <button className="h-9 px-5 rounded-xl bg-[#C59A87] text-white text-sm font-medium hover:bg-[#B58976] transition-colors shadow-xs cursor-pointer">
-                            Записаться
-                          </button>
-                        </Link>
-                      </div>
-                    </div>
-                  ) : (
-                    /* SOLO MASTER CARD */
-                    <div className="flex flex-col h-full justify-between">
-                      <div>
-                        {/* Interactive Work Gallery with Swipe & Dots */}
-                        <CardGallery
-                          images={galleryImages}
-                          alt={place.name}
-                          badge={place.badge}
-                          typeBadge="Частный мастер"
-                          isFavorite={isFav}
-                          onFavoriteClick={() => toggleFavorite(place.id)}
-                        />
+                          <div className="p-5 pb-3">
+                            <Link href={`/${targetSlug}`}>
+                              <h2 className="font-serif text-xl font-medium text-main tracking-tight hover:text-[#C59A87] transition-colors cursor-pointer">
+                                {place.name}
+                              </h2>
+                            </Link>
+                            <div className="flex items-center gap-1.5 text-sm font-medium mt-1">
+                              <Star className="w-4 h-4 fill-main text-main" />
+                              <span className="text-main">{place.rating}</span>
+                              <span className="text-[#7A7571] font-normal">
+                                • {place.distance} км
+                              </span>
+                            </div>
+                            <p className="text-sm text-[#5E544C] mt-2 line-clamp-1">
+                              {place.description}
+                            </p>
 
-                        {/* Master Info */}
-                        <div className="p-5 pb-3">
-                          <div className="flex items-start gap-3.5">
-                            <img
-                              src={place.avatar}
-                              alt={place.name}
-                              className="w-13 h-13 rounded-full object-cover shrink-0 border border-[#EAE3D9] mt-0.5"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <Link href={`/${targetSlug}`}>
-                                <h2 className="font-serif text-xl font-medium text-main tracking-tight hover:text-[#C59A87] transition-colors cursor-pointer">
-                                  {place.name}
-                                </h2>
-                              </Link>
-                              <p className="text-sm text-[#7A7571] mt-0.5">
-                                {place.specialization}
-                              </p>
-                              <div className="flex items-center gap-1.5 text-sm font-medium mt-1">
-                                <Star className="w-4 h-4 fill-main text-main" />
-                                <span className="text-main">{place.rating}</span>
-                                <span className="text-[#7A7571] font-normal">
-                                  • {place.distance} км
-                                </span>
-                              </div>
+                            {/* Slots */}
+                            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-3">
+                              {place.slots.map((slot: any, idx: number) => (
+                                <Link key={idx} href={`/${targetSlug}`}>
+                                  <button
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 cursor-pointer ${
+                                      slot.highlighted
+                                        ? "bg-[#C59A87] text-white shadow-xs"
+                                        : "bg-[#8A9580]/15 text-[#2A2421] hover:bg-[#8A9580]/25 border border-[#8A9580]/25"
+                                    }`}
+                                  >
+                                    {slot.time}
+                                  </button>
+                                </Link>
+                              ))}
                             </div>
                           </div>
+                        </div>
 
-                          <p className="text-sm text-[#5E544C] mt-3 line-clamp-2 leading-relaxed">
-                            {place.description}
-                          </p>
+                        {/* Footer */}
+                        <div className="px-5 pb-5 pt-3 border-t border-[#F0ECE4] flex items-center justify-between">
+                          <span className="text-sm font-medium text-main">
+                            Задаток: {place.deposit} TL
+                          </span>
+                          <Link href={`/${targetSlug}`}>
+                            <button className="h-9 px-5 rounded-xl bg-[#C59A87] text-white text-sm font-medium hover:bg-[#B58976] transition-colors shadow-xs cursor-pointer">
+                              Записаться
+                            </button>
+                          </Link>
+                        </div>
+                      </div>
+                    ) : (
+                      /* SOLO MASTER CARD */
+                      <div className="flex flex-col h-full justify-between">
+                        <div>
+                          {/* Interactive Work Gallery with Swipe & Dots */}
+                          <CardGallery
+                            images={galleryImages}
+                            alt={place.name}
+                            badge={place.badge}
+                            typeBadge="Частный мастер"
+                            isFavorite={isFav}
+                            onFavoriteClick={() => toggleFavorite(place.id)}
+                          />
 
-                          {/* Slots for solo master */}
-                          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-3">
-                            {place.slots.map((slot, idx) => (
-                              <Link key={idx} href={`/${targetSlug}`}>
-                                <button
-                                  disabled={!slot.available}
-                                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${
-                                    !slot.available
-                                      ? "bg-[#F4EFE6] text-[#7A7571] cursor-not-allowed line-through"
-                                      : "bg-[#8A9580]/15 text-[#2A2421] hover:bg-[#8A9580]/25 border border-[#8A9580]/25 cursor-pointer"
-                                  }`}
-                                >
-                                  {slot.time}
-                                </button>
-                              </Link>
-                            ))}
+                          {/* Master Info */}
+                          <div className="p-5 pb-3">
+                            <div className="flex items-start gap-3.5">
+                              <img
+                                src={place.avatar}
+                                alt={place.name}
+                                className="w-13 h-13 rounded-full object-cover shrink-0 border border-[#EAE3D9] mt-0.5"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <Link href={`/${targetSlug}`}>
+                                  <h2 className="font-serif text-xl font-medium text-main tracking-tight hover:text-[#C59A87] transition-colors cursor-pointer">
+                                    {place.name}
+                                  </h2>
+                                </Link>
+                                <p className="text-sm text-[#7A7571] mt-0.5">
+                                  {place.specialization}
+                                </p>
+                                <div className="flex items-center gap-1.5 text-sm font-medium mt-1">
+                                  <Star className="w-4 h-4 fill-main text-main" />
+                                  <span className="text-main">{place.rating}</span>
+                                  <span className="text-[#7A7571] font-normal">
+                                    • {place.distance} км
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <p className="text-sm text-[#5E544C] mt-3 line-clamp-2 leading-relaxed">
+                              {place.description}
+                            </p>
+
+                            {/* Slots for solo master */}
+                            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-3">
+                              {place.slots.map((slot: any, idx: number) => (
+                                <Link key={idx} href={`/${targetSlug}`}>
+                                  <button
+                                    disabled={!slot.available}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${
+                                      !slot.available
+                                        ? "bg-[#F4EFE6] text-[#7A7571] cursor-not-allowed line-through"
+                                        : "bg-[#8A9580]/15 text-[#2A2421] hover:bg-[#8A9580]/25 border border-[#8A9580]/25 cursor-pointer"
+                                    }`}
+                                  >
+                                    {slot.time}
+                                  </button>
+                                </Link>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Footer */}
-                      <div className="px-5 pb-5 pt-3 border-t border-[#F0ECE4] flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-main min-w-0">
-                          <CreditCard className="w-4 h-4 text-[#7A7571] shrink-0" />
-                          <span className="truncate">
-                            {place.primaryService?.name} • от{" "}
-                            {place.primaryService?.price} TL • от{" "}
-                            {place.primaryService?.duration} мин
-                          </span>
+                        {/* Footer */}
+                        <div className="px-5 pb-5 pt-3 border-t border-[#F0ECE4] flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-main min-w-0">
+                            <CreditCard className="w-4 h-4 text-[#7A7571] shrink-0" />
+                            <span className="truncate">
+                              {place.primaryService?.name} • от{" "}
+                              {place.primaryService?.price} TL • от{" "}
+                              {place.primaryService?.duration} мин
+                            </span>
+                          </div>
+                          <Link href={`/${targetSlug}`}>
+                            <button className="h-9 px-5 rounded-xl bg-[#C59A87] text-white text-sm font-medium hover:bg-[#B58976] transition-colors shrink-0 shadow-xs cursor-pointer">
+                              Записаться
+                            </button>
+                          </Link>
                         </div>
-                        <Link href={`/${targetSlug}`}>
-                          <button className="h-9 px-5 rounded-xl bg-[#C59A87] text-white text-sm font-medium hover:bg-[#B58976] transition-colors shrink-0 shadow-xs cursor-pointer">
-                            Записаться
-                          </button>
-                        </Link>
                       </div>
-                    </div>
-                  )}
-                </motion.div>
-              );
-            })}
-          </motion.div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          )}
         </div>
       </main>
 
