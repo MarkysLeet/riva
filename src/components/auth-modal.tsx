@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Store, X, CheckCircle, Check, Loader2 } from "lucide-react";
-import { sendOtp, verifyOtp, PasswordlessMetadata } from "@/app/actions/auth";
+import { Sparkles, Store, X, CheckCircle, Check, Loader2, Fingerprint } from "lucide-react";
+import { sendOtp, verifyOtp, loginWithVerifiedPasskey, PasswordlessMetadata } from "@/app/actions/auth";
+import { authenticateWithPasskey, getLastPasskeyEmail } from "@/lib/webauthn";
 
 type Role = "client" | "master" | "salon" | null;
 
@@ -114,6 +115,35 @@ export function AuthModal({ isOpen, onClose, initialTab = "login" }: AuthModalPr
   const generatedSlug = role === "master" ? transliterate(masterName) : role === "salon" ? transliterate(salonName) : "";
 
   // 1. Submit Form & Send 6-digit OTP
+  const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
+
+  const handlePasskeyLogin = async () => {
+    setErrorMsg("");
+    setIsPasskeyLoading(true);
+    try {
+      const targetEmail = email.trim() || getLastPasskeyEmail() || undefined;
+      const passkeyRes = await authenticateWithPasskey(targetEmail);
+      if (!passkeyRes.success || !passkeyRes.email) {
+        setErrorMsg(passkeyRes.error || "Ошибка проверки ключа доступа");
+        setIsPasskeyLoading(false);
+        return;
+      }
+
+      const loginRes = await loginWithVerifiedPasskey(passkeyRes.email);
+      if (loginRes.error) {
+        setErrorMsg(loginRes.error);
+      } else {
+        onClose();
+        router.push("/dashboard");
+        router.refresh();
+      }
+    } catch (e: any) {
+      setErrorMsg(e?.message || "Ошибка входа по ключу доступа");
+    } finally {
+      setIsPasskeyLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
@@ -297,24 +327,48 @@ export function AuthModal({ isOpen, onClose, initialTab = "login" }: AuthModalPr
                   )}
 
                   {tab === "login" ? (
-                    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                      <input
-                        type="email"
-                        placeholder="Email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-[#F4EFE6] border border-[#EFEAE0] hover:border-[#D9D1C5] focus:border-[#C59A87] focus:ring-1 focus:ring-[#C59A87] focus:ring-inset focus:outline-none rounded-xl px-4 py-3 text-sm text-[#2A2421] placeholder:text-[#827771] transition-colors"
-                        required
-                      />
+                    <div className="flex flex-col gap-4">
+                      {/* Passkey / Fast Biometric Login Button */}
                       <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="mt-2 w-full bg-[#C59A87] text-white py-3 rounded-full font-medium transition-colors hover:bg-[#b08876] disabled:opacity-50 flex justify-center items-center gap-2 text-sm"
+                        type="button"
+                        onClick={handlePasskeyLogin}
+                        disabled={isPasskeyLoading || isLoading}
+                        className="w-full py-3 px-4 rounded-2xl bg-[#2A2421] hover:bg-[#3E352F] text-white font-medium text-sm transition-all flex items-center justify-center gap-2.5 shadow-sm active:scale-[0.99] disabled:opacity-50 cursor-pointer"
                       >
-                        {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                        Получить код
+                        {isPasskeyLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Fingerprint className="w-4 h-4 text-[#E2B7A0]" />
+                        )}
+                        <span>Войти по ключу доступа</span>
                       </button>
-                    </form>
+
+                      <div className="relative flex items-center justify-center my-1">
+                        <div className="border-t border-[#EAE3D9] w-full" />
+                        <span className="bg-white px-3 text-xs text-[#827771] uppercase tracking-wider absolute">
+                          или по почте
+                        </span>
+                      </div>
+
+                      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                        <input
+                          type="email"
+                          placeholder="Email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="w-full bg-[#F4EFE6] border border-[#EFEAE0] hover:border-[#D9D1C5] focus:border-[#C59A87] focus:ring-1 focus:ring-[#C59A87] focus:ring-inset focus:outline-none rounded-xl px-4 py-3 text-sm text-[#2A2421] placeholder:text-[#827771] transition-colors"
+                          required
+                        />
+                        <button
+                          type="submit"
+                          disabled={isLoading || isPasskeyLoading}
+                          className="mt-2 w-full bg-[#C59A87] text-white py-3 rounded-full font-medium transition-colors hover:bg-[#b08876] disabled:opacity-50 flex justify-center items-center gap-2 text-sm cursor-pointer"
+                        >
+                          {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                          Получить код
+                        </button>
+                      </form>
+                    </div>
                   ) : (
                     <>
                       {/* Role Selection Options */}
