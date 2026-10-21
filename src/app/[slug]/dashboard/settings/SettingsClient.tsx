@@ -5,7 +5,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 
 import { CardGallery } from '@/components/card-gallery';
-import { Star, CreditCard, Sparkles, HelpCircle, ArrowRight, ExternalLink } from 'lucide-react';
+import { Star, CreditCard, Sparkles, HelpCircle, ArrowRight, ExternalLink, ShieldCheck, Fingerprint, Trash2, KeyRound, Check } from 'lucide-react';
+import { isPasskeySupported, getStoredPasskeys, registerDevicePasskey, removeStoredPasskey, StoredPasskeyCredential } from '@/lib/webauthn';
 import { motion } from 'framer-motion';
 
 // MOCK INITIAL DATA
@@ -38,7 +39,41 @@ const INITIAL_DATA = {
 
 export default function SettingsClient({ initialData, tenantSlug }: any) {
   const [formData, setFormData] = useState(initialData);
-  const [activeTab, setActiveTab] = useState<'general' | 'services' | 'schedule'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'services' | 'schedule' | 'security'>('general');
+  const [passkeys, setPasskeys] = useState<StoredPasskeyCredential[]>([]);
+  const [isWebAuthnSupported, setIsWebAuthnSupported] = useState<boolean | null>(null);
+  const [isRegisteringPasskey, setIsRegisteringPasskey] = useState(false);
+  const [securityMessage, setSecurityMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  React.useEffect(() => {
+    isPasskeySupported().then(supported => setIsWebAuthnSupported(supported));
+    setPasskeys(getStoredPasskeys());
+  }, []);
+
+  const handleRegisterPasskey = async () => {
+    setSecurityMessage(null);
+    setIsRegisteringPasskey(true);
+    try {
+      const userEmail = formData.email || (typeof window !== 'undefined' ? localStorage.getItem('riva_passkey_last_email_v1') : null) || 'owner@riva.app';
+      const res = await registerDevicePasskey(userEmail, formData.name);
+      if (res.success && res.credential) {
+        setPasskeys(getStoredPasskeys());
+        setSecurityMessage({ text: 'Ключ доступа успешно добавлен и привязан к этому устройству!', type: 'success' });
+      } else {
+        setSecurityMessage({ text: res.error || 'Не удалось зарегистрировать ключ', type: 'error' });
+      }
+    } catch (e: any) {
+      setSecurityMessage({ text: e?.message || 'Ошибка регистрации ключа', type: 'error' });
+    } finally {
+      setIsRegisteringPasskey(false);
+    }
+  };
+
+  const handleDeletePasskey = (id: string) => {
+    removeStoredPasskey(id);
+    setPasskeys(getStoredPasskeys());
+    setSecurityMessage({ text: 'Ключ доступа удален', type: 'success' });
+  };
 
   // Computed Checkbox Progress
   const isNameFilled = formData.name.trim().length > 0;
@@ -140,6 +175,9 @@ export default function SettingsClient({ initialData, tenantSlug }: any) {
                 </TabButton>
                 <TabButton active={activeTab === 'services'} onClick={() => setActiveTab('services')}>
                   Услуги и прайс
+                </TabButton>
+                <TabButton active={activeTab === 'security'} onClick={() => setActiveTab('security')}>
+                  Безопасность
                 </TabButton>
               </div>
 
@@ -351,6 +389,116 @@ export default function SettingsClient({ initialData, tenantSlug }: any) {
                     </div>
                   </motion.div>
                 )}
+                {activeTab === 'security' && (
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-6">
+                    <div className="flex flex-col gap-1 pb-4 border-b border-[#EAE3D9]">
+                      <div className="flex items-center gap-2 text-[#2A2421]">
+                        <ShieldCheck className="w-5 h-5 text-[#C59A87]" />
+                        <h2 className="font-serif text-lg font-medium">
+                          Безопасность и ключи доступа
+                        </h2>
+                      </div>
+                      <p className="text-xs sm:text-sm text-[#7A7571]">
+                        Входите в систему моментально без паролей и ожидания писем, используя Touch ID, Face ID или Windows Hello на ваших устройствах.
+                      </p>
+                    </div>
+
+                    {securityMessage && (
+                      <div className={`p-4 rounded-2xl text-xs sm:text-sm flex items-center gap-2.5 ${securityMessage.type === 'success' ? 'bg-[#D2EDD8]/50 border border-[#C1DDC9] text-[#1E4631]' : 'bg-red-500/10 border border-red-500/20 text-red-700'}`}>
+                        {securityMessage.type === 'success' ? <Check className="w-4 h-4" /> : null}
+                        <span>{securityMessage.text}</span>
+                      </div>
+                    )}
+
+                    <div className="bg-[#FAF8F5] border border-[#EAE3D9] rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-start gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-white border border-[#EAE3D9] flex items-center justify-center text-[#2A2421] shrink-0">
+                          <Fingerprint className="w-5 h-5 text-[#C59A87]" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-[#2A2421] flex items-center gap-2">
+                            <span>Ключ доступа (Passkey)</span>
+                            {isWebAuthnSupported && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#D2EDD8] text-[#1E4631]">
+                                Доступно на этом устройстве
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-[#7A7571] mt-0.5">
+                            Используйте отпечаток пальца, сканирование лица или PIN устройства для мгновенного входа
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleRegisterPasskey}
+                        disabled={isRegisteringPasskey}
+                        className="px-5 py-2.5 rounded-xl bg-[#2A2421] hover:bg-[#3E352F] text-white text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-2 shrink-0 disabled:opacity-50 cursor-pointer shadow-sm active:scale-[0.98]"
+                      >
+                        <KeyRound className="w-4 h-4 text-[#E2B7A0]" />
+                        <span>{isRegisteringPasskey ? 'Регистрация...' : 'Создать ключ доступа'}</span>
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                      <span className="text-xs font-medium uppercase tracking-wider text-[#7A7571]">
+                        Привязанны ключи ({passkeys.length})
+                      </span>
+
+                      {passkeys.length === 0 ? (
+                        <div className="p-6 rounded-2xl border border-dashed border-[#D9D1C5] text-center flex flex-col items-center justify-center gap-1 text-[#827771]">
+                          <Fingerprint className="w-8 h-8 text-[#D9D1C5] mb-1" />
+                          <p className="text-xs font-medium text-[#2A2421]">
+                            Нет активных ключей доступа на этом устройстве
+                          </p>
+                          <p className="text-[11px] text-[#7A7571]">
+                            Нажмите кнопку «Создать ключ доступа» выше, чтобы добавить быстрое подтверждение входа
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-2">
+                          {passkeys.map((key) => (
+                            <div key={key.id} className="p-4 bg-white border border-[#EAE3D9] rounded-2xl flex items-center justify-between shadow-xs">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-[#FAF8F5] flex items-center justify-center text-[#2A2421]">
+                                  <KeyRound className="w-4 h-4 text-[#C59A87]" />
+                                </div>
+                                <div>
+                                  <div className="text-xs sm:text-sm font-medium text-[#2A2421]">{key.name}</div>
+                                  <div className="text-[11px] text-[#7A7571]">
+                                    Добавлен {new Date(key.createdAt).toLocaleDateString('ru-RU')} • Аккаунт: {key.userEmail}
+                                  </div>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePasskey(key.id)}
+                              className="p-2 text-[#827771] hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                              title="Удалить ключ доступа"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
+                      ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-4 bg-[#F4EFE6]/50 rounded-2xl border border-[#EAE3D9] flex items-start gap-3">
+                    <HelpCircle className="w-4 h-4 text-[#C59A87] mt-0.5 shrink-0" />
+                    <div className="text-xs text-[#7A7571] space-y-1">
+                      <span className="font-medium text-[#2A2421] block">
+                        Почему Passkey безопаснее обычных кодов?
+                      </span>
+                      <span>
+                        Ключи доступа генерируются локально чипом безопасности вашего устройства (TPM / Secure Enclave) и никогда не передаются по сети. Их невозможно перехватить фишингом или украсть.
+                      </span>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
               </div>
             </div>
 

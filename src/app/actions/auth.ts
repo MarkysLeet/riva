@@ -160,3 +160,42 @@ export async function verifyOtp(email: string, token: string) {
     slug: setupResult?.slug,
   };
 }
+
+
+export async function loginWithVerifiedPasskey(email: string) {
+  const adminDb = createAdminClient();
+  const supabase = await createClient();
+
+  if (!email) {
+    return { error: 'Email не указан' };
+  }
+
+  // 1. Generate an admin magiclink to authenticate the user securely on the server
+  const { data: linkData, error: linkError } = await adminDb.auth.admin.generateLink({
+    type: 'magiclink',
+    email,
+  });
+
+  if (linkError || !linkData?.properties?.email_otp) {
+    return { error: linkError?.message || 'Не удалось авторизовать пользователя через Passkey' };
+  }
+
+  // 2. Verify the generated OTP in the active user session so cookie gets created
+  const { data, error } = await supabase.auth.verifyOtp({
+    email,
+    token: linkData.properties.email_otp,
+    type: 'email',
+  });
+
+  if (error || !data.user) {
+    return { error: error?.message || 'Ошибка создания сессии по ключу доступа' };
+  }
+
+  const setupResult = await setupNewUser(data.user);
+  return {
+    success: true,
+    user: data.user,
+    role: setupResult?.role,
+    slug: setupResult?.slug,
+  };
+}
