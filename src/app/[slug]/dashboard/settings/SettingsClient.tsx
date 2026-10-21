@@ -64,7 +64,7 @@ export default function SettingsClient({ initialData, tenantSlug }: any) {
   };
 
   return (
-    <div className="flex h-screen bg-[#FAF7F2] overflow-hidden font-sans">
+    <>
       {/* Desktop Left Sidebar */}
 
 
@@ -415,7 +415,7 @@ export default function SettingsClient({ initialData, tenantSlug }: any) {
           </div>
         </div>
       </main>
-    </div>
+    </>
   );
 }
 

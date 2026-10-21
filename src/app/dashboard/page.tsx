@@ -14,8 +14,27 @@ export default async function DashboardRedirector() {
     redirect('/login');
   }
 
-  // Find the first tenant where user is an owner or master
-  // Check tenants table directly
+  // 1. Check tenant_owners table (primary association created during onboarding / OTP)
+  const { data: tenantOwnerEntry } = await supabase
+    .from('tenant_owners')
+    .select('tenant_id')
+    .eq('user_id', user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (tenantOwnerEntry?.tenant_id) {
+    const { data: tenantObj } = await supabase
+      .from('tenants')
+      .select('slug')
+      .eq('id', tenantOwnerEntry.tenant_id)
+      .single();
+
+    if (tenantObj?.slug) {
+      redirect(`/${tenantObj.slug}/dashboard`);
+    }
+  }
+
+  // 2. Check direct owner_id on tenants table
   const { data: ownedTenant } = await supabase
     .from('tenants')
     .select('slug')
@@ -27,19 +46,46 @@ export default async function DashboardRedirector() {
     redirect(`/${ownedTenant.slug}/dashboard`);
   }
 
-  // Check business_masters table
+  // 3. Check business_masters table
   const { data: masterEntry } = await supabase
     .from('business_masters')
-    .select('business_id, tenants(slug)')
+    .select('business_id')
     .eq('user_id', user.id)
     .limit(1)
     .maybeSingle();
 
-  const tenantSlug = (masterEntry?.tenants as any)?.slug;
-  if (tenantSlug) {
-    redirect(`/${tenantSlug}/dashboard`);
+  if (masterEntry?.business_id) {
+    const { data: tenantObj } = await supabase
+      .from('tenants')
+      .select('slug')
+      .eq('id', masterEntry.business_id)
+      .single();
+
+    if (tenantObj?.slug) {
+      redirect(`/${tenantObj.slug}/dashboard`);
+    }
   }
 
-  // If no tenant found
+  // 4. Check masters table (fallback for consolidated schema)
+  const { data: masterAltEntry } = await supabase
+    .from('masters')
+    .select('tenant_id')
+    .eq('user_id', user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (masterAltEntry?.tenant_id) {
+    const { data: tenantObj } = await supabase
+      .from('tenants')
+      .select('slug')
+      .eq('id', masterAltEntry.tenant_id)
+      .single();
+
+    if (tenantObj?.slug) {
+      redirect(`/${tenantObj.slug}/dashboard`);
+    }
+  }
+
+  // If no tenant found for this user
   redirect('/login?error=no_tenant');
 }

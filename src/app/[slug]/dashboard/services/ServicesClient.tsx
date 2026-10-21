@@ -167,7 +167,7 @@ export default function ServicesClient({ initialServices, tenantSlug }: { initia
   };
 
   return (
-    <div className="flex h-screen bg-[#FAF7F2] overflow-hidden font-sans">
+    <>
       {/* Desktop Left Navigation */}
 
 
@@ -516,6 +516,6 @@ export default function ServicesClient({ initialServices, tenantSlug }: { initia
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }

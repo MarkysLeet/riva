@@ -38,11 +38,27 @@ export default async function DashboardLayout({
 
   let isAuthorized = false;
 
-  // Check if owner
+  // 1. Check direct owner_id
   if (tenant.owner_id === user.id) {
     isAuthorized = true;
-  } else {
-    // Check if master
+  }
+
+  // 2. Check tenant_owners table
+  if (!isAuthorized) {
+    const { data: ownerRecord } = await supabase
+      .from('tenant_owners')
+      .select('id')
+      .eq('tenant_id', tenant.id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (ownerRecord) {
+      isAuthorized = true;
+    }
+  }
+
+  // 3. Check business_masters table
+  if (!isAuthorized) {
     const { data: master } = await supabase
       .from('business_masters')
       .select('id')
@@ -55,16 +71,30 @@ export default async function DashboardLayout({
     }
   }
 
+  // 4. Check masters table
+  if (!isAuthorized) {
+    const { data: masterAlt } = await supabase
+      .from('masters')
+      .select('id')
+      .eq('tenant_id', tenant.id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (masterAlt) {
+      isAuthorized = true;
+    }
+  }
+
   if (!isAuthorized) {
     redirect(`/${slug}/login?error=unauthorized`);
   }
 
   return (
-    <div className="flex flex-col sm:flex-row min-h-screen bg-[#FDFBF7]">
+    <div className="flex h-screen w-full bg-[#FAF7F2] overflow-hidden font-sans">
       <SidebarNav currentSlug={slug} />
-      <main className="flex-1 w-full relative sm:ml-20 md:ml-64 transition-all duration-300 min-h-screen">
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         {children}
-      </main>
+      </div>
     </div>
   );
 }

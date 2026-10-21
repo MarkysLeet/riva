@@ -2,13 +2,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SidebarNav } from '@/components/schedule/SidebarNav';
 import { ScheduleView } from '@/components/schedule/ScheduleView';
 import { AppointmentDetailsSidebar } from '@/components/schedule/AppointmentDetailsSidebar';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import {
-  mockScheduleData,
-  mockWaitlistData,
+  MOCK_SPECIALISTS,
   type Appointment,
   type AppointmentStatus,
   type WaitlistEntry,
@@ -19,16 +17,18 @@ import { Calendar, UserPlus, Phone, Trash2 } from 'lucide-react';
 import { updateAppointmentStatus, updateAppointmentNotes } from '@/app/actions/appointments';
 
 export default function DashboardClient({ tenantSlug, tenantId, specialists, appointmentsRaw, waitlistRaw }: any) {
-  // Map specialists
-  const mappedSpecialists: Specialist[] = specialists.map((s: any) => ({
-    id: s.id,
-    name: s.name,
-    role: s.role === 'owner' ? 'Владелец' : 'Мастер',
-    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80',
-  }));
+  // Map specialists or fallback to MOCK_SPECIALISTS if tenant has none yet
+  const mappedSpecialists: Specialist[] = specialists && specialists.length > 0
+    ? specialists.map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        role: s.role === 'owner' ? 'Владелец' : 'Мастер',
+        avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80',
+      }))
+    : MOCK_SPECIALISTS;
 
   // Map appointments
-  const mappedAppointments: Appointment[] = appointmentsRaw.map((apt: any) => {
+  const mappedAppointments: Appointment[] = (appointmentsRaw || []).map((apt: any) => {
     const startDate = new Date(apt.start_time);
     const endDate = new Date(apt.end_time);
     const startHourDecimal = startDate.getHours() + startDate.getMinutes() / 60;
@@ -43,7 +43,7 @@ export default function DashboardClient({ tenantSlug, tenantId, specialists, app
       apt.status === 'confirmed' || apt.status === 'completed' || apt.status === 'in_progress'
     );
 
-    const specialistName = specialists.find((s: any) => s.id === apt.master_id)?.name || 'Не назначен';
+    const specialistName = specialists?.find((s: any) => s.id === apt.master_id)?.name || 'Не назначен';
     const serviceName = apt.services?.name || 'Услуга';
 
     return {
@@ -54,6 +54,7 @@ export default function DashboardClient({ tenantSlug, tenantId, specialists, app
         name: apt.client_name,
         shortName: apt.client_name,
         phone: apt.client_phone || '',
+        avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80',
         metrics: { loyaltyRate: 100, attendanceRate: 100, rating: 100 },
         notes: apt.client_profiles?.internal_notes || apt.internal_notes || '',
         totalVisits: 1
@@ -65,8 +66,9 @@ export default function DashboardClient({ tenantSlug, tenantId, specialists, app
       durationMinutes,
       specialistId: apt.master_id,
       specialistName,
-      price: 0,
-      depositAmount: 0,
+      price: apt.price || 0,
+      depositAmount: apt.deposit_amount || 0,
+      depositCurrency: 'TL',
       isDepositPaid,
       status: mappedStatus,
       pastVisits: []
@@ -78,7 +80,7 @@ export default function DashboardClient({ tenantSlug, tenantId, specialists, app
   const [currentView, setCurrentView] = useState<'schedule' | 'waitlist'>('schedule');
 
   // Waitlist state
-  const mappedWaitlist: WaitlistEntry[] = waitlistRaw.map((wl: any) => ({
+  const mappedWaitlist: WaitlistEntry[] = (waitlistRaw || []).map((wl: any) => ({
     id: wl.id,
     clientName: wl.client_name,
     phone: wl.client_phone,
@@ -162,11 +164,8 @@ export default function DashboardClient({ tenantSlug, tenantId, specialists, app
   };
 
   return (
-    <div className="flex h-screen w-full bg-[#FAF7F2] overflow-hidden font-sans">
-      {/* 1. Left Icon Navigation Sidebar */}
-      <SidebarNav currentSlug={tenantSlug} />
-
-      {/* 2. Main Center Content Workspace */}
+    <>
+      {/* Main Center Content Workspace */}
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Top View Selector Bar */}
         <div className="bg-[#FAF7F2] border-b border-[#EAE3D9] px-6 py-2.5 flex items-center justify-between">
@@ -250,68 +249,58 @@ export default function DashboardClient({ tenantSlug, tenantId, specialists, app
                   className="h-9 px-4 rounded-xl bg-[#2A2421] hover:bg-[#C59A87] text-white text-xs sm:text-sm font-medium inline-flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
                 >
                   <UserPlus className="w-4 h-4" />
-                  <span>Добавить клиента</span>
+                  <span>Добавить в лист</span>
                 </button>
               </div>
 
               {waitlist.length === 0 ? (
-                <div className="bg-white border border-[#EAE3D9] rounded-2xl p-12 text-center">
-                  <div className="w-12 h-12 rounded-full bg-[#F4EFE6] text-[#7A7571] flex items-center justify-center mx-auto mb-3">
-                    <UserPlus className="w-6 h-6" />
-                  </div>
-                  <h3 className="font-medium text-base text-[#2A2421] mb-1">
-                    Лист ожидания пуст
-                  </h3>
-                  <p className="text-xs sm:text-sm text-[#7A7571] max-w-sm mx-auto">
-                    Когда у вас закончатся свободные слоты, добавляйте желающих сюда, чтобы быстро заполнять отмены.
+                <div className="border border-dashed border-[#EAE3D9] rounded-2xl p-12 text-center bg-white/50">
+                  <Calendar className="w-8 h-8 text-[#A6A09B] mx-auto mb-2" />
+                  <p className="text-sm font-medium text-[#2A2421]">Лист ожидания пуст</p>
+                  <p className="text-xs text-[#7A7571] mt-1 max-w-sm mx-auto">
+                    Клиенты, которые не смогли записаться на нужное время, появятся здесь. Вы сможете связаться с ними в случае освобождения слота.
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {waitlist.map((entry) => (
+                <div className="space-y-3">
+                  {waitlist.map((item) => (
                     <div
-                      key={entry.id}
-                      className="bg-white border border-[#EAE3D9] rounded-2xl p-5 flex flex-col justify-between shadow-xs hover:border-[#C59A87] transition-all"
+                      key={item.id}
+                      className="bg-white border border-[#EAE3D9] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:shadow-xs transition-shadow"
                     >
-                      <div>
-                        <div className="flex items-start justify-between gap-3 mb-2">
-                          <h3 className="font-medium text-base text-[#2A2421]">
-                            {entry.clientName}
-                          </h3>
-                          <span className="text-[11px] font-medium bg-[#F4EFE6] text-[#2A2421] px-2 py-0.5 rounded-md">
-                            {entry.createdAt}
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm text-[#2A2421]">{item.clientName}</span>
+                          <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#EFE6DA] text-[#5E544C] font-normal">
+                            {item.desiredTime}
                           </span>
                         </div>
-                        <div className="space-y-1.5 text-xs sm:text-sm text-[#5E544C] mb-4">
-                          <p className="flex items-center gap-1.5 text-[#2A2421] font-medium">
-                            <Phone className="w-3.5 h-3.5 text-[#7A7571]" />
-                            <span>{entry.phone}</span>
-                          </p>
-                          <p>
-                            <span className="text-[#7A7571]">Услуга:</span> {entry.serviceName || entry.desiredService}
-                          </p>
-                          <p>
-                            <span className="text-[#7A7571]">Желаемое время:</span> {entry.desiredTime || entry.desiredTimeRange}
-                          </p>
+                        <div className="flex items-center gap-4 text-xs text-[#7A7571]">
+                          <span className="text-[#2A2421] font-medium">{item.serviceName}</span>
+                          <a
+                            href={`tel:${item.phone}`}
+                            className="inline-flex items-center gap-1 hover:text-[#C59A87] transition-colors"
+                          >
+                            <Phone className="w-3 h-3" />
+                            {item.phone}
+                          </a>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-3 border-t border-[#F0ECE4]">
-                        <button
-                          onClick={() => {
-                            setCurrentView('schedule');
-                            alert(`Выберите подходящий свободный слот в расписании для ${entry.clientName}`);
-                          }}
-                          className="px-3 py-1.5 rounded-lg bg-[#2A2421] hover:bg-[#C59A87] text-white text-xs font-medium transition-colors cursor-pointer"
+                      <div className="flex items-center gap-2 self-end sm:self-center">
+                        <a
+                          href={`tel:${item.phone}`}
+                          className="h-8 px-3 rounded-lg border border-[#EAE3D9] hover:bg-[#FAF7F2] text-[#2A2421] text-xs font-medium inline-flex items-center gap-1.5 transition-colors"
                         >
-                          Назначить окно
-                        </button>
+                          <Phone className="w-3.5 h-3.5 text-[#C59A87]" />
+                          Позвонить
+                        </a>
                         <button
-                          onClick={() => handleRemoveWaitlist(entry.id)}
-                          className="p-1.5 text-[#7A7571] hover:text-[#5C2317] transition-colors cursor-pointer"
+                          onClick={() => handleRemoveWaitlist(item.id)}
+                          className="h-8 w-8 rounded-lg border border-[#EAE3D9] hover:bg-rose-50 hover:border-rose-200 text-[#7A7571] hover:text-rose-600 inline-flex items-center justify-center transition-colors cursor-pointer"
                           title="Удалить из листа"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
@@ -422,6 +411,6 @@ export default function DashboardClient({ tenantSlug, tenantId, specialists, app
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
