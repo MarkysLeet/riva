@@ -37,15 +37,16 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Redirect users without auth attempting to access admin areas
+  // Redirect unauthenticated users attempting to access dashboard or admin areas to homepage with auth modal
+  const pathname = request.nextUrl.pathname;
   if (
     !user &&
-    request.nextUrl.pathname.match(/^\/[^\/]+\/admin/i) &&
-    !request.nextUrl.pathname.endsWith("/login")
+    (pathname === "/dashboard" ||
+      pathname.match(/^\/[^\/]+\/(dashboard|admin)/i))
   ) {
-    const slug = request.nextUrl.pathname.split("/")[1];
     const url = request.nextUrl.clone();
-    url.pathname = `/${slug}/login`;
+    url.pathname = "/";
+    url.searchParams.set("auth", "login");
     return NextResponse.redirect(url);
   }
 

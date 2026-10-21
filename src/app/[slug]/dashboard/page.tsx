@@ -1,5 +1,6 @@
 export const instant = false;
 import React from 'react';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import DashboardClient from './DashboardClient';
 
@@ -12,10 +13,10 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
     .from('tenants')
     .select('id')
     .eq('slug', slug)
-    .single();
+    .maybeSingle();
 
   if (!tenant) {
-    return <div>Tenant not found</div>;
+    redirect('/dashboard');
   }
 
   // Fetch actual data
@@ -26,10 +27,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
 
   const { data: appointmentsRaw } = await supabase
     .from('appointments')
-    .select(`
-      *,
-      services(name)
-    `)
+    .select('*, services(name)')
     .eq('business_id', tenant.id);
 
   const { data: waitlistRaw } = await supabase

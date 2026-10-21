@@ -46,6 +46,18 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const auth = params.get("auth");
+      if (auth === "login") {
+        setAuthTab("login");
+        setIsAuthModalOpen(true);
+      } else if (auth === "register") {
+        setAuthTab("register");
+        setIsAuthModalOpen(true);
+      }
+    }
+
     const supabase = createClient();
     if (!supabase) return;
 
@@ -171,12 +183,13 @@ export default function Home() {
           <div className="flex items-center gap-2.5 sm:gap-3">
             {user ? (
               <div className="flex items-center gap-3">
-                <Link href="/dashboard" className="hidden sm:block">
-                  <button className="h-10 px-5 text-sm font-medium rounded-xl inline-flex items-center justify-center transition-colors cursor-pointer bg-[#C59A87] text-white hover:bg-[#B58976] shadow-xs">
-                    Личный кабинет
+                <Link href="/dashboard">
+                  <button className="h-9 sm:h-10 px-3 sm:px-5 text-xs sm:text-sm font-medium rounded-xl inline-flex items-center justify-center transition-colors cursor-pointer bg-[#C59A87] text-white hover:bg-[#B58976] shadow-xs">
+                    <span className="sm:hidden">Кабинет</span>
+                    <span className="hidden sm:inline">Личный кабинет</span>
                   </button>
                 </Link>
-                <Link href="/profile">
+                <Link href="/dashboard">
                   <Avatar className="h-9 w-9 sm:h-10 sm:w-10 border border-[#EAE3D9] cursor-pointer hover:border-[#C59A87] transition-colors">
                     <AvatarImage src={user.user_metadata?.avatar_url} />
                     <AvatarFallback className="bg-[#F4EFE6] text-main text-xs sm:text-sm font-medium">

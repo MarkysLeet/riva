@@ -22,7 +22,7 @@ export default async function DashboardLayout({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/${slug}/login?error=unauthorized`);
+    redirect('/?auth=login');
   }
 
   // Find the tenant by slug
@@ -33,7 +33,7 @@ export default async function DashboardLayout({
     .maybeSingle();
 
   if (!tenant) {
-    redirect('/not-found');
+    redirect('/dashboard');
   }
 
   let isAuthorized = false;
@@ -86,7 +86,7 @@ export default async function DashboardLayout({
   }
 
   if (!isAuthorized) {
-    redirect(`/${slug}/login?error=unauthorized`);
+    redirect('/dashboard');
   }
 
   return (

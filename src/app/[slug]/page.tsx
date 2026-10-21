@@ -15,18 +15,39 @@ export default async function SalonPublicPage({ params }: PageProps) {
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
 
-  let tenantData: { id: string; name: string; is_solo_master?: boolean } | null = null;
+  let tenantData: { id: string; name: string; is_solo_master?: boolean; owner_id?: string } | null = null;
+  let isOwner = false;
 
   try {
     const supabase = await createClient();
     const { data: tenant } = await supabase
       .from('tenants')
-      .select('id, name, is_solo_master')
+      .select('id, name, is_solo_master, owner_id')
       .eq('slug', slug)
       .maybeSingle();
 
     if (tenant) {
       tenantData = tenant;
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user && tenant) {
+      if (tenant.owner_id === user.id) {
+        isOwner = true;
+      } else {
+        const { data: ownerRec } = await supabase
+          .from('tenant_owners')
+          .select('id')
+          .eq('tenant_id', tenant.id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (ownerRec) {
+          isOwner = true;
+        }
+      }
     }
   } catch (_err) {
     // If table doesn't exist yet or connection fails, use fallback
@@ -88,6 +109,22 @@ export default async function SalonPublicPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] text-[#2A2421] font-sans">
+      {/* Owner Top Navigation Bar */}
+      {isOwner && (
+        <div className="bg-[#2A2421] text-[#FAF7F2] px-4 py-2 text-xs sm:text-sm font-medium flex items-center justify-between z-50 relative border-b border-[#3E352F]">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span>Вы владелец этого салона</span>
+          </div>
+          <Link
+            href={`/${slug}/dashboard`}
+            className="inline-flex items-center gap-1.5 bg-[#C59A87] hover:bg-[#B58976] text-white px-3 py-1 rounded-lg text-xs font-semibold transition-colors"
+          >
+            Панель управления & расписание →
+          </Link>
+        </div>
+      )}
+
       {/* Top Header / Navigation Bar */}
       <header className="sticky top-0 z-40 bg-[#FAF7F2]/95 backdrop-blur-md border-b border-[#EAE3D9]">
         <div className="max-w-[1140px] mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
@@ -107,13 +144,23 @@ export default async function SalonPublicPage({ params }: PageProps) {
             </span>
           </Link>
 
-          {/* Direct Booking CTA */}
-          <a
-            href="#services"
-            className="h-10 px-4 sm:px-5 rounded-xl bg-[#C59A87] hover:bg-[#B58976] text-white text-xs sm:text-sm font-medium inline-flex items-center justify-center transition-colors shadow-xs"
-          >
-            Записаться
-          </a>
+          {/* Action CTAs */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {isOwner && (
+              <Link
+                href={`/${slug}/dashboard`}
+                className="h-10 px-3.5 sm:px-4 rounded-xl bg-[#2A2421] hover:bg-[#3E352F] text-white text-xs sm:text-sm font-medium inline-flex items-center justify-center transition-colors shadow-xs"
+              >
+                Панель управления
+              </Link>
+            )}
+            <a
+              href="#services"
+              className="h-10 px-4 sm:px-5 rounded-xl bg-[#C59A87] hover:bg-[#B58976] text-white text-xs sm:text-sm font-medium inline-flex items-center justify-center transition-colors shadow-xs"
+            >
+              Записаться
+            </a>
+          </div>
         </div>
       </header>
 
@@ -137,7 +184,7 @@ export default async function SalonPublicPage({ params }: PageProps) {
             <div className="bg-white border border-[#EAE3D9] rounded-3xl p-6 sm:p-7 shadow-xs">
               <div className="flex items-center gap-2 mb-2">
                 <div className="flex items-center gap-1 bg-[#F4EFE6] px-2.5 py-1 rounded-lg text-xs font-medium text-[#2A2421]">
-                  <Star className="w-3.5 h-3.5 fill-[#2A2421] text-[#2A2421]" />
+                  <Star className="w-3.5 h-3.5 fill-[#2A2421] text-[#2A2421] credit-card" />
                   <span>{business.rating}</span>
                 </div>
                 <span className="text-xs font-normal text-[#7A7571]">
@@ -161,36 +208,29 @@ export default async function SalonPublicPage({ params }: PageProps) {
                 <span>{business.address}</span>
               </div>
 
-              <div className="border-t border-[#EAE3D9] pt-4 mb-4">
-                <p className="text-sm text-[#5E544C] leading-relaxed">
-                  {business.description}
-                </p>
-              </div>
+              <p className="text-xs sm:text-sm text-[#7A7571] font-normal leading-relaxed mb-6 pt-4 border-t border-[#F0ECE4]">
+                {business.description}
+              </p>
 
-              <div className="bg-[#FAF7F2] rounded-2xl p-4 border border-[#EAE3D9] flex items-center justify-between">
-                <div>
-                  <span className="block text-xs font-normal text-[#7A7571]">Базовый задаток</span>
-                  <span className="font-serif text-lg font-medium text-[#2A2421]">
-                    {business.deposit} TL
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-[#2A2421] bg-white px-3 py-1.5 rounded-xl border border-[#EAE3D9]">
-                  <Shield className="w-3.5 h-3.5 text-[#4E7554]" />
-                  <span>Безопасная бронь</span>
+              <div className="p-3.5 rounded-2xl bg-[#F4EFE6]/60 border border-[#EAE3D9] flex items-center gap-3">
+                <Shield className="w-5 h-5 text-[#C59A87] shrink-0" />
+                <div className="text-xs text-[#5E544C] leading-snug">
+                  <span className="font-medium text-[#2A2421]">Предоплата {business.deposit} TL.</span>{' '}
+                  Бесплатная отмена за 24 часа до визита.
                 </div>
               </div>
             </div>
 
-            {/* Schedule Quick Preview */}
+            {/* Working Hours Card */}
             <div className="bg-white border border-[#EAE3D9] rounded-3xl p-6 shadow-xs">
-              <h3 className="font-serif text-base font-medium text-[#2A2421] mb-3 flex items-center gap-2">
+              <div className="flex items-center gap-2 mb-4 font-serif text-base font-medium text-[#2A2421]">
                 <Clock className="w-4 h-4 text-[#C59A87]" />
-                <span>Часы приёма</span>
-              </h3>
-              <div className="space-y-2 text-xs sm:text-sm">
-                {business.workingHours.map((wh, i) => (
-                  <div key={i} className="flex justify-between items-center text-[#5E544C]">
-                    <span>{wh.day}</span>
+                <span>Режим работы</span>
+              </div>
+              <div className="flex flex-col gap-2">
+                {business.workingHours.map((wh, idx) => (
+                  <div key={idx} className="flex justify-between text-xs sm:text-sm text-[#5E544C]">
+                    <span className="font-normal text-[#7A7571]">{wh.day}</span>
                     <span className="font-medium text-[#2A2421]">{wh.hours}</span>
                   </div>
                 ))}
@@ -199,43 +239,40 @@ export default async function SalonPublicPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Services List Section */}
-        <section id="services" className="scroll-mt-24">
+        {/* Services Section */}
+        <section id="services" className="mb-12">
           <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="font-serif text-2xl sm:text-3xl font-medium text-[#2A2421] tracking-tight">
-                Услуги и стоимость
-              </h2>
-              <p className="text-xs sm:text-sm text-[#7A7571] mt-1">
-                Выберите подходящую процедуру для бронирования онлайн
-              </p>
-            </div>
+            <h2 className="font-serif text-2xl font-medium text-[#2A2421] tracking-tight">
+              Услуги и стоимость
+            </h2>
+            <span className="text-xs font-normal text-[#7A7571]">
+              Всего: {business.services.length}
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
             {business.services.map((srv) => (
               <div
                 key={srv.id}
-                className="bg-white border border-[#EAE3D9] rounded-2xl p-5 flex flex-col justify-between hover:border-[#C59A87] transition-all shadow-xs group"
+                className="bg-white border border-[#EAE3D9] hover:border-[#C59A87] rounded-3xl p-5 sm:p-6 transition-all shadow-xs flex flex-col justify-between"
               >
                 <div>
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <span className="text-xs font-normal text-[#C59A87] uppercase tracking-wider">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <span className="text-[11px] font-medium uppercase tracking-wider text-[#C59A87] bg-[#F4EFE6] px-2.5 py-0.5 rounded-full">
                       {srv.category}
                     </span>
                     {srv.popular && (
-                      <span className="text-[11px] font-medium bg-[#F4EFE6] text-[#2A2421] px-2 py-0.5 rounded-md">
-                        Популярно
+                      <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        Популярное
                       </span>
                     )}
                   </div>
-                  <h3 className="font-medium text-base text-[#2A2421] mb-1">
+                  <h3 className="font-serif text-lg font-medium text-[#2A2421] mb-1">
                     {srv.name}
                   </h3>
-                  <div className="flex items-center gap-3 text-xs text-[#7A7571] mb-4">
+                  <div className="flex items-center gap-1.5 text-xs text-[#7A7571] mb-4">
+                    <Clock className="w-3.5 h-3.5" />
                     <span>{srv.duration} мин</span>
-                    <span>•</span>
-                    <span>Задаток: {srv.deposit} TL</span>
                   </div>
                 </div>
 
@@ -243,12 +280,12 @@ export default async function SalonPublicPage({ params }: PageProps) {
                   <div className="font-serif text-xl font-medium text-[#2A2421]">
                     {srv.price} TL
                   </div>
-                  <Link
-                    href={`/${slug}/dashboard?service=${srv.id}`}
+                  <a
+                    href="#services"
                     className="h-9 px-4 rounded-xl bg-[#2A2421] hover:bg-[#C59A87] text-white text-xs sm:text-sm font-medium inline-flex items-center justify-center transition-colors cursor-pointer"
                   >
                     Записаться
-                  </Link>
+                  </a>
                 </div>
               </div>
             ))}

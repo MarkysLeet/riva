@@ -38,7 +38,7 @@ export async function registerTenant(data: RegistrationData) {
       .from("tenants")
       .select("id")
       .eq("slug", slug)
-      .single();
+      .maybeSingle();
 
     if (!existing) {
       isUnique = true;
@@ -68,11 +68,14 @@ export async function registerTenant(data: RegistrationData) {
         slug: slug,
         name: name,
         phone: phone,
+        type: isSoloMaster ? "solo" : "salon",
         social_networks: socials?.map((s) => s.url).filter(Boolean) || [],
         is_solo_master: isSoloMaster,
+        owner_id: userId,
+        status: "published",
       },
     ])
-    .select("id")
+    .select("id, slug")
     .single();
 
   if (tenantError || !tenantData) {
@@ -80,18 +83,36 @@ export async function registerTenant(data: RegistrationData) {
   }
 
   // 3. Link owner to tenant
-  const { error: ownerError } = await supabase.from("tenant_owners").insert([
+  await supabase.from("tenant_owners").insert([
     {
       tenant_id: tenantData.id,
       user_id: userId,
+      role: "owner",
     },
   ]);
 
-  if (ownerError) {
-    return { error: ownerError.message || "Ошибка назначения владельца" };
-  }
+  // 4. Link specialist
+  await supabase.from("masters").insert([
+    {
+      tenant_id: tenantData.id,
+      user_id: userId,
+      name: name,
+      role: "owner",
+      status: "active",
+    },
+  ]);
 
-  return { success: true, tenantId: tenantData.id, slug };
+  await supabase.from("business_masters").insert([
+    {
+      business_id: tenantData.id,
+      user_id: userId,
+      name: name,
+      role: "owner",
+      status: "active",
+    },
+  ]);
+
+  return { success: true, tenantId: tenantData.id, slug: tenantData.slug };
 }
 
 export type PasswordlessMetadata = {
@@ -142,13 +163,13 @@ export async function verifyOtp(email: string, token: string) {
 
   const setupResult = await setupNewUser(data.user);
   if (setupResult?.error) {
-      return { error: setupResult.error };
+    console.error("setupNewUser non-fatal error:", setupResult.error);
   }
 
   return {
-      success: true,
-      user: data.user,
-      role: setupResult?.role,
-      slug: setupResult?.slug
+    success: true,
+    user: data.user,
+    role: setupResult?.role,
+    slug: setupResult?.slug,
   };
 }
